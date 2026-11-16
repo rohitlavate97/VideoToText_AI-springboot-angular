@@ -3,6 +3,7 @@ import os
 import tempfile
 import time
 from typing import List, Optional
+from app.diarization import DiarizationEngineFactory, SpeakerAssociator
 from app.messaging.publisher import EventPublisher
 from app.models.event import ProcessingStage
 from app.models.job import TranscriptionJobRequest, TranscriptionJobResult
@@ -111,6 +112,7 @@ class VideoTranscriptionProcessor(BaseJobProcessor):
             total_audio_duration = sum(c.duration for c in chunks)
 
             # Stage 4: Diarization (if enabled)
+            speakers_count = 1
             if job.enable_diarization:
                 self.emit_progress(
                     job.job_id,
@@ -118,6 +120,16 @@ class VideoTranscriptionProcessor(BaseJobProcessor):
                     80.0,
                     "Identifying distinct speaker turns with PyAnnote..."
                 )
+                diarization_engine = DiarizationEngineFactory.create_engine()
+                diarization_result = diarization_engine.diarize(
+                    wav_path,
+                    max_speakers=job.max_speakers
+                )
+                all_segments, speaker_profiles = SpeakerAssociator.associate_segments(
+                    all_segments,
+                    diarization_result.turns
+                )
+                speakers_count = max(1, len(speaker_profiles))
 
             # Stage 5: Translation (if target languages requested)
             if job.target_languages:
@@ -153,7 +165,7 @@ class VideoTranscriptionProcessor(BaseJobProcessor):
                 duration_seconds=round(max(1.0, total_audio_duration), 2),
                 detected_language=detected_lang,
                 segments_count=len(all_segments),
-                speakers_count=2 if job.enable_diarization else 1
+                speakers_count=speakers_count
             )
 
             if self.publisher:

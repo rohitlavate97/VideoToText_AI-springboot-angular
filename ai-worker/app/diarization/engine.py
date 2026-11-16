@@ -2,11 +2,11 @@ import hashlib
 import logging
 import math
 import os
+import random
 import wave
 from abc import ABC, abstractmethod
 from typing import List, Optional
-import numpy as np
-from app.config.settings import settings
+from app.config.settings import get_settings
 from app.diarization.models import DiarizationResult, DiarizationTurn, SpeakerProfile
 
 logger = logging.getLogger(__name__)
@@ -69,10 +69,6 @@ class AcousticDiarizationEngine(BaseDiarizationEngine):
         turn_start = 0.0
         turn_index = 0
 
-        # Read actual audio samples if valid WAV file
-        samples = self._read_wav_samples(audio_path)
-        sample_rate = 16000
-
         while turn_start < duration:
             # Determine turn length: 3.0s to 6.0s
             turn_length = min(4.5 + (turn_index % 3) * 0.8, duration - turn_start)
@@ -82,7 +78,7 @@ class AcousticDiarizationEngine(BaseDiarizationEngine):
             spk_label = f"SPEAKER_{spk_id:02d}"
 
             # Extract or compute a deterministic 128-d acoustic embedding
-            embedding = self._compute_speaker_embedding(samples, turn_start, turn_end, sample_rate, spk_label)
+            embedding = self._compute_speaker_embedding(turn_start, turn_end, spk_label)
 
             turns.append(
                 DiarizationTurn(
@@ -111,36 +107,29 @@ class AcousticDiarizationEngine(BaseDiarizationEngine):
             size = os.path.getsize(audio_path)
             return round(max(1.0, size / 32000.0), 2)
 
-    def _read_wav_samples(self, audio_path: str) -> Optional[np.ndarray]:
-        try:
-            with wave.open(audio_path, "rb") as wf:
-                raw_bytes = wf.readframes(wf.getnframes())
-                return np.frombuffer(raw_bytes, dtype=np.int16)
-        except Exception:
-            return None
-
     def _compute_speaker_embedding(
         self,
-        samples: Optional[np.ndarray],
         start: float,
         end: float,
-        sample_rate: int,
         speaker_label: str
     ) -> List[float]:
         """Generates a 128-dimensional L2-normalized embedding representation."""
         # Use acoustic signature hash for deterministic clustering
         seed_str = f"{speaker_label}-signature"
         seed_hash = hashlib.sha256(seed_str.encode()).digest()
-        rng = np.random.RandomState(int.from_bytes(seed_hash[:4], "big"))
-        base_vector = rng.randn(128)
+        rng = random.Random(int.from_bytes(seed_hash[:8], "big"))
+        base_vector = [rng.gauss(0, 1) for _ in range(128)]
 
         # Perturb slightly with slice start to simulate intra-speaker variance
-        perturbation = np.sin(np.linspace(start, end, 128)) * 0.05
-        vector = base_vector + perturbation
-        norm = np.linalg.norm(vector)
+        vector = []
+        for i, val in enumerate(base_vector):
+            t = start + (i / 128.0) * (end - start)
+            vector.append(val + 0.05 * math.sin(t))
+
+        norm = math.sqrt(sum(x * x for x in vector))
         if norm > 0:
-            vector = vector / norm
-        return [round(float(x), 5) for x in vector]
+            vector = [round(x / norm, 5) for x in vector]
+        return vector
 
     def _aggregate_speakers(self, turns: List[DiarizationTurn]) -> List[SpeakerProfile]:
         profiles = {}
