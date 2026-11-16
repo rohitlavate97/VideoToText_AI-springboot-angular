@@ -94,8 +94,8 @@ def test_vad_chunker_single_chunk():
 
 
 def test_vad_chunker_multi_chunk():
-    # Set max chunk duration to 2 seconds to test chunk splitting
-    chunker = VADChunker(max_chunk_duration=2)
+    # Set max chunk duration to 2 seconds to test chunk splitting without overlap
+    chunker = VADChunker(max_chunk_duration=2, overlap_seconds=0.0)
     with tempfile.NamedTemporaryFile(suffix=".wav", delete=False) as f:
         dummy_path = f.name
 
