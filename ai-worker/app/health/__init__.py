@@ -1,1 +1,3 @@
-"""Health check and readiness inspection module."""
+from app.health.checker import HealthChecker
+
+__all__ = ["HealthChecker"]
