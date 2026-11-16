@@ -14,6 +14,7 @@ from app.processors.transcript_merger import TranscriptMerger
 from app.processors.vad_chunker import VADChunker
 from app.providers.base_provider import ASRProvider, TranscriptionOutput, TranscriptionSegment
 from app.providers.factory import ASRProviderFactory
+from app.translation.pipeline import TranslationPipeline
 
 logger = logging.getLogger(__name__)
 
@@ -132,12 +133,29 @@ class VideoTranscriptionProcessor(BaseJobProcessor):
                 speakers_count = max(1, len(speaker_profiles))
 
             # Stage 5: Translation (if target languages requested)
+            translation_results = {}
             if job.target_languages:
                 self.emit_progress(
                     job.job_id,
                     ProcessingStage.TRANSLATING,
-                    90.0,
+                    88.0,
                     f"Translating transcript into: {', '.join(job.target_languages)}..."
+                )
+                pipeline = TranslationPipeline()
+                def on_lang_done(idx: int, total: int, lang: str):
+                    prog = 88.0 + (6.0 * (idx / total))
+                    self.emit_progress(
+                        job.job_id,
+                        ProcessingStage.TRANSLATING,
+                        round(prog, 1),
+                        f"Translated transcript into {lang.upper()} ({idx}/{total})..."
+                    )
+                translation_results = pipeline.translate_all(
+                    job_id=job.job_id,
+                    segments=all_segments,
+                    source_lang=detected_lang,
+                    target_languages=job.target_languages,
+                    on_language_completed=on_lang_done
                 )
 
             # Stage 6: Summarization (if requested)
