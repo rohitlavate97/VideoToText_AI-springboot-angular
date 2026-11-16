@@ -36,3 +36,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - User Profile & Preferences editor for configuring default language, processing mode (local/cloud), and ASR engine/model.
     - Functional `authInterceptor` with automatic token attachment and 401 refresh token retry logic.
     - `authGuard` and `guestGuard` route protection with lazy loading.
+- **Phase 4**:
+  - AWS S3 / MinIO object storage service (`S3StorageService`) supporting direct uploads, chunked multipart uploads, pre-signed URL generation, and deletion.
+  - Video entities (`Video`, `UploadSession`) and JPA repositories with owner-level isolation.
+  - Deep file verification (`VideoValidator`) enforcing allowed extensions, 10 GB size limits, 240-minute duration limit, and binary magic bytes inspection.
+  - Metadata extraction (`MetadataExtractionService`) using FFprobe JSON inspection with resilient fallback.
+  - REST endpoints (`VideoController`): direct multipart upload, chunked upload initiation, chunk parts upload, multipart completion, paginated video listing, video details with streaming URL, and video deletion.
+  - Integration test suite (`VideoControllerIntegrationTest`) covering all upload paths, format/duration/signature rejections, and access control (28/28 tests passing).
+  - Angular 17 Frontend Video UI:
+    - Interactive drag-and-drop file upload zone with live upload progress percentage and validation feedback (`VideoUploadComponent`).
+    - Responsive video library with status filters, search, specs display, and pagination (`VideoLibraryComponent`).
+    - Video detail page with HTML5 `<video>` preview player, technical metadata breakdown, and transcription CTA (`VideoDetailComponent`).
+    - Configured lazy routes protected by `authGuard`.

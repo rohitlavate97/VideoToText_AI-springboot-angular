@@ -64,6 +64,17 @@
 
 ---
 
+## Phase 4 — Video Upload and Management
+
+| # | Functionality | Status | Commit | Notes |
+|---|---------------|--------|--------|-------|
+| 4.1 | S3/MinIO Object Storage Integration | ✅ Done | `ded8a0e` | `S3StorageService` with AWS SDK v2, path-style access, single and multipart chunk uploads |
+| 4.2 | Video Entities, Repositories, & Validator | ✅ Done | `ded8a0e` | `Video`, `UploadSession`, `VideoValidator` with raw magic bytes check & 240-min duration ceiling |
+| 4.3 | Metadata Extraction Service & REST APIs | ✅ Done | `ded8a0e` | FFprobe JSON inspection + fallback, upload, initiate, parts, complete, get, delete, 28/28 tests passing |
+| 4.4 | Frontend Video UI (Upload, Library, Details) | ✅ Done | `8c0fb6f` | Drag-and-drop dropzone, live upload progress, video grid with status badges, HTML5 video player |
+
+---
+
 ## Phase Checklist
 
 | Phase | Description | Status |
@@ -72,8 +83,8 @@
 | **Phase 1** | Development environment and repository setup | ✅ Completed |
 | **Phase 2** | Backend foundation | ✅ Completed |
 | **Phase 3** | Authentication and user management | ✅ Completed |
-| **Phase 4** | Video upload and management | ⬜ Next |
-| Phase 5 | Python AI worker foundation | ⬜ Not Started |
+| **Phase 4** | Video upload and management | ✅ Completed |
+| **Phase 5** | Python AI worker foundation | ⬜ Next |
 | Phase 6 | ASR engine and transcription | ⬜ Not Started |
 | Phase 7 | Transcription orchestration and performance optimization | ⬜ Not Started |
 | Phase 8 | Speaker diarization | ⬜ Not Started |
@@ -93,4 +104,4 @@
 
 ## Next Step
 
-Begin Phase 4: Video upload and management (video upload API, multipart uploads, resumable uploads, FFprobe metadata extraction, 240-minute duration limit enforcement, S3/MinIO object storage integration, video listing and deletion, and drag-and-drop frontend UI).
+Begin Phase 5: Python AI worker foundation (Python 3.11 virtual environment, RabbitMQ worker consumer, Pydantic job schema, consumer acknowledgment/nack, retry mechanism, idempotency handling, and health check API).
