@@ -8,6 +8,8 @@ from app.models.event import ProcessingStage
 from app.models.job import TranscriptionJobRequest, TranscriptionJobResult
 from app.processors.audio_extractor import AudioExtractor
 from app.processors.base_processor import BaseJobProcessor
+from app.processors.chunk_scheduler import ChunkScheduler
+from app.processors.transcript_merger import TranscriptMerger
 from app.processors.vad_chunker import VADChunker
 from app.providers.base_provider import ASRProvider, TranscriptionOutput, TranscriptionSegment
 from app.providers.factory import ASRProviderFactory
@@ -83,52 +85,30 @@ class VideoTranscriptionProcessor(BaseJobProcessor):
                 detected_lang, prob = asr_provider.detect_language(wav_path)
                 logger.info("Auto-detected language for job %s: %s (confidence: %.2f)", job.job_id, detected_lang, prob)
 
-            # Stage 3: Transcribing Chunks
-            all_segments: List[TranscriptionSegment] = []
-            segment_id_counter = 0
-            total_audio_duration = 0.0
-
-            for i, chunk in enumerate(chunks, start=1):
-                chunk_progress = 20.0 + (55.0 * (i / total_chunks))
+            # Stage 3: Transcribing Chunks via GPU-aware scheduler
+            def on_chunk_completed(chunk_idx: int, total: int, c):
+                chunk_progress = 20.0 + (55.0 * (chunk_idx / total))
                 self.emit_progress(
                     job.job_id,
                     ProcessingStage.TRANSCRIBING,
                     round(chunk_progress, 1),
-                    f"Transcribing audio chunk {i} of {total_chunks} [{detected_lang.upper()}] with word-level timestamps...",
-                    completed_chunks=i,
-                    total_chunks=total_chunks
+                    f"Transcribing audio chunk {chunk_idx} of {total} [{detected_lang.upper()}] with word-level timestamps...",
+                    completed_chunks=chunk_idx,
+                    total_chunks=total
                 )
 
-                output: TranscriptionOutput = asr_provider.transcribe(
-                    audio_path=chunk.file_path,
-                    language=detected_lang,
-                    task=job.task,
-                    word_timestamps=True
-                )
+            scheduler = ChunkScheduler(provider=asr_provider)
+            chunk_results = scheduler.schedule_chunks(
+                chunks=chunks,
+                language=detected_lang,
+                task=job.task,
+                word_timestamps=True,
+                on_chunk_completed=on_chunk_completed
+            )
 
-                # Offset chunk segment & word timestamps into global timeline
-                for seg in output.segments:
-                    offset_seg = TranscriptionSegment(
-                        id=segment_id_counter,
-                        start_time=round(seg.start_time + chunk.start_time, 3),
-                        end_time=round(seg.end_time + chunk.start_time, 3),
-                        text=seg.text,
-                        confidence=seg.confidence,
-                        language=detected_lang,
-                        words=[
-                            w.model_copy(
-                                update={
-                                    "start_time": round(w.start_time + chunk.start_time, 3),
-                                    "end_time": round(w.end_time + chunk.start_time, 3)
-                                }
-                            )
-                            for w in seg.words
-                        ]
-                    )
-                    all_segments.append(offset_seg)
-                    segment_id_counter += 1
-
-                total_audio_duration += chunk.duration
+            # Stage 3b: Merge chunk transcripts with boundary deduplication
+            all_segments = TranscriptMerger.merge_chunks(chunk_results)
+            total_audio_duration = sum(c.duration for c in chunks)
 
             # Stage 4: Diarization (if enabled)
             if job.enable_diarization:
