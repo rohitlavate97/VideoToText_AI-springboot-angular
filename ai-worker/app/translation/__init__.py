@@ -8,6 +8,11 @@ from app.translation.provider import (
     BaseTranslationProvider,
     MockTranslationProvider,
 )
+from app.translation.engine import (
+    DictionaryTranslationProvider,
+    HelsinkiMarianProvider,
+    TranslationEngineFactory,
+)
 from app.translation.quality import TranslationQualityChecker
 
 __all__ = [
@@ -17,5 +22,8 @@ __all__ = [
     "TranslationResult",
     "BaseTranslationProvider",
     "MockTranslationProvider",
+    "DictionaryTranslationProvider",
+    "HelsinkiMarianProvider",
+    "TranslationEngineFactory",
     "TranslationQualityChecker",
 ]
