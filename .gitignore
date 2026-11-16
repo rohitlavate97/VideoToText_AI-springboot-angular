@@ -61,11 +61,11 @@ Desktop.ini
 docker-compose.override.yml
 
 # ===== Storage =====
-data/
-uploads/
-storage/
-minio-data/
+/data/
+/uploads/
+/storage/
+/minio-data/
 
 # ===== Logs =====
-logs/
+/logs/
 *.log
