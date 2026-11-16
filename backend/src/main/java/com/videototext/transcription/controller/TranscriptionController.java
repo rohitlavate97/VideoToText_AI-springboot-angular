@@ -4,6 +4,7 @@ import com.videototext.common.dto.ApiResponse;
 import com.videototext.common.dto.PageResponse;
 import com.videototext.security.CustomUserDetails;
 import com.videototext.transcription.dto.CreateTranscriptionRequest;
+import com.videototext.transcription.dto.ReassignSpeakerRequest;
 import com.videototext.transcription.dto.TranscriptResponse;
 import com.videototext.transcription.dto.TranscriptRevisionResponse;
 import com.videototext.transcription.dto.TranscriptSegmentResponse;
@@ -126,6 +127,18 @@ public class TranscriptionController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         TranscriptSegmentResponse response = transcriptionService.updateSegment(userDetails.getId(), jobId, segmentId, request);
         return ResponseEntity.ok(ApiResponse.success(response, "Transcript segment updated successfully"));
+    }
+
+    @Operation(summary = "Reassign segment speaker", description = "Reassigns a transcript segment to a different speaker")
+    @PutMapping("/{jobId}/segments/{segmentId}/speaker")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<TranscriptSegmentResponse>> reassignSpeaker(
+            @PathVariable UUID jobId,
+            @PathVariable UUID segmentId,
+            @Valid @RequestBody ReassignSpeakerRequest request,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        TranscriptSegmentResponse response = transcriptionService.reassignSpeaker(userDetails.getId(), jobId, segmentId, request);
+        return ResponseEntity.ok(ApiResponse.success(response, "Speaker reassigned successfully"));
     }
 
     @Operation(summary = "Cancel transcription job", description = "Cancels an ongoing or queued transcription job")

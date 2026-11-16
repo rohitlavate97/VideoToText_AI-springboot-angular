@@ -7,6 +7,7 @@ import com.videototext.common.exception.ResourceNotFoundException;
 import com.videototext.speaker.entity.Speaker;
 import com.videototext.speaker.repository.SpeakerRepository;
 import com.videototext.transcription.dto.CreateTranscriptionRequest;
+import com.videototext.transcription.dto.ReassignSpeakerRequest;
 import com.videototext.transcription.dto.TranscriptResponse;
 import com.videototext.transcription.dto.TranscriptRevisionResponse;
 import com.videototext.transcription.dto.TranscriptSegmentResponse;
@@ -344,6 +345,14 @@ public class TranscriptionService {
                 .collect(Collectors.toMap(Speaker::getId, Function.identity(), (a, b) -> a));
 
         return TranscriptSegmentResponse.fromEntity(segment, speakerMap);
+    }
+
+    @Transactional
+    public TranscriptSegmentResponse reassignSpeaker(UUID userId, UUID jobId, UUID segmentId, ReassignSpeakerRequest request) {
+        UpdateTranscriptSegmentRequest updateRequest = UpdateTranscriptSegmentRequest.builder()
+                .speakerId(request.getSpeakerId())
+                .build();
+        return updateSegment(userId, jobId, segmentId, updateRequest);
     }
 
     @Transactional
