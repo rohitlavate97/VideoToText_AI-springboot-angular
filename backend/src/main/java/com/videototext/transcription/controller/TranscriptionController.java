@@ -1,8 +1,11 @@
 package com.videototext.transcription.controller;
 
 import com.videototext.common.dto.ApiResponse;
+import com.videototext.common.dto.PageResponse;
 import com.videototext.security.CustomUserDetails;
 import com.videototext.transcription.dto.CreateTranscriptionRequest;
+import com.videototext.transcription.dto.TranscriptResponse;
+import com.videototext.transcription.dto.TranscriptRevisionResponse;
 import com.videototext.transcription.dto.TranscriptSegmentResponse;
 import com.videototext.transcription.dto.TranscriptionJobResponse;
 import com.videototext.transcription.service.TranscriptionService;
@@ -20,6 +23,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.List;
@@ -73,13 +77,40 @@ public class TranscriptionController {
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
-    @Operation(summary = "Get transcript segments", description = "Returns word-level aligned transcript segments with speaker IDs and timestamps")
-    @GetMapping("/{jobId}/segments")
+    @Operation(summary = "Get full transcript", description = "Returns aggregated transcript text, statistics, speakers, and ordered segments")
+    @GetMapping("/{jobId}/transcript")
     @PreAuthorize("isAuthenticated()")
-    public ResponseEntity<ApiResponse<List<TranscriptSegmentResponse>>> getJobSegments(
+    public ResponseEntity<ApiResponse<TranscriptResponse>> getTranscript(
             @PathVariable UUID jobId,
             @AuthenticationPrincipal CustomUserDetails userDetails) {
+        TranscriptResponse response = transcriptionService.getTranscript(userDetails.getId(), jobId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "Get transcript segments", description = "Returns word-level aligned transcript segments with optional pagination")
+    @GetMapping("/{jobId}/segments")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<?>> getJobSegments(
+            @PathVariable UUID jobId,
+            @RequestParam(required = false) Integer page,
+            @RequestParam(required = false) Integer size,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        if (page != null && size != null) {
+            PageResponse<TranscriptSegmentResponse> pageResponse =
+                    transcriptionService.getJobSegmentsPaginated(userDetails.getId(), jobId, page, size);
+            return ResponseEntity.ok(ApiResponse.success(pageResponse));
+        }
         List<TranscriptSegmentResponse> response = transcriptionService.getJobSegments(userDetails.getId(), jobId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "Get transcript revisions", description = "Returns full audit history of all edits made to the transcript")
+    @GetMapping("/{jobId}/revisions")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<List<TranscriptRevisionResponse>>> getRevisions(
+            @PathVariable UUID jobId,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        List<TranscriptRevisionResponse> response = transcriptionService.getRevisions(userDetails.getId(), jobId);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 

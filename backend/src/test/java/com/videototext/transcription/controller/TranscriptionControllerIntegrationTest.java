@@ -7,7 +7,10 @@ import com.videototext.transcription.dto.CreateTranscriptionRequest;
 import com.videototext.transcription.dto.JobProgressEventDto;
 import com.videototext.transcription.dto.TranscriptionResultPayload;
 import com.videototext.transcription.entity.TranscriptionJob;
+import com.videototext.transcription.entity.TranscriptSegment;
 import com.videototext.transcription.repository.TranscriptionJobRepository;
+import com.videototext.transcription.repository.TranscriptRevisionRepository;
+import com.videototext.transcription.repository.TranscriptSegmentRepository;
 import com.videototext.transcription.service.TranscriptionEventConsumer;
 import com.videototext.user.entity.User;
 import com.videototext.user.repository.UserRepository;
@@ -60,6 +63,12 @@ class TranscriptionControllerIntegrationTest {
 
     @Autowired
     private TranscriptionJobRepository jobRepository;
+
+    @Autowired
+    private TranscriptSegmentRepository segmentRepository;
+
+    @Autowired
+    private TranscriptRevisionRepository revisionRepository;
 
     @Autowired
     private TranscriptionEventConsumer eventConsumer;
@@ -301,5 +310,66 @@ class TranscriptionControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.data.status").value("CANCELLED"))
                 .andExpect(jsonPath("$.data.currentStage").value("CANCELLED"));
+    }
+
+    @Test
+    @Order(11)
+    void getTranscript_Success() throws Exception {
+        TranscriptionJob job = jobRepository.findById(createdJobId).orElseThrow();
+
+        // Seed 2 sample segments for createdJobId
+        TranscriptSegment seg1 = TranscriptSegment.builder()
+                .job(job)
+                .segmentIndex(0)
+                .startTime(0.0f)
+                .endTime(2.5f)
+                .text("Welcome to the video transcription presentation.")
+                .confidence(0.98f)
+                .language("en")
+                .build();
+        TranscriptSegment seg2 = TranscriptSegment.builder()
+                .job(job)
+                .segmentIndex(1)
+                .startTime(2.5f)
+                .endTime(5.0f)
+                .text("Today we will discuss speech recognition architectures.")
+                .confidence(0.96f)
+                .language("en")
+                .build();
+        segmentRepository.saveAll(List.of(seg1, seg2));
+
+        mockMvc.perform(get("/api/v1/transcriptions/" + createdJobId + "/transcript")
+                        .header("Authorization", "Bearer " + tokenUser1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.jobId").value(createdJobId.toString()))
+                .andExpect(jsonPath("$.data.totalSegments").value(2))
+                .andExpect(jsonPath("$.data.totalWords").value(13))
+                .andExpect(jsonPath("$.data.fullText", containsString("Welcome to the video transcription")))
+                .andExpect(jsonPath("$.data.segments", hasSize(2)));
+    }
+
+    @Test
+    @Order(12)
+    void getJobSegmentsPaginated_Success() throws Exception {
+        mockMvc.perform(get("/api/v1/transcriptions/" + createdJobId + "/segments?page=0&size=1")
+                        .header("Authorization", "Bearer " + tokenUser1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.page").value(0))
+                .andExpect(jsonPath("$.data.size").value(1))
+                .andExpect(jsonPath("$.data.totalElements").value(2))
+                .andExpect(jsonPath("$.data.totalPages").value(2))
+                .andExpect(jsonPath("$.data.content", hasSize(1)));
+    }
+
+    @Test
+    @Order(13)
+    void getRevisions_EmptyInitialList_Success() throws Exception {
+        mockMvc.perform(get("/api/v1/transcriptions/" + createdJobId + "/revisions")
+                        .header("Authorization", "Bearer " + tokenUser1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data", hasSize(0)));
     }
 }
