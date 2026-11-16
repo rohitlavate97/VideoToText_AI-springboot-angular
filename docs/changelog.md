@@ -108,3 +108,17 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Speaker filter bar with interactive chips, segment count badges, and one-click filtering.
     - Inline speaker rename prompt updating backend and live UI.
     - Stylized speaker tag chips on transcript segments with display names.
+- **Phase 9**:
+  - Spring Boot 3.5.0 transcript management & editor backend:
+    - `TranscriptRevision` entity mapped to Flyway `transcript_revisions` table (V14) with `TranscriptRevisionRepository`.
+    - `TranscriptSegmentRepository` enhanced with `Pageable` pagination, case-insensitive text search, and scoped segment lookup.
+    - DTOs: `TranscriptResponse` (aggregated word counts, duration, full text, and segments), `UpdateTranscriptSegmentRequest`, `ReassignSpeakerRequest`, `TranscriptSearchResponse`, `TranscriptRevisionResponse`.
+    - `TranscriptionService` methods: `getTranscript`, `getJobSegmentsPaginated`, `updateSegment` (with timestamp bounds validation and automatic revision tracking), `reassignSpeaker`, `searchTranscript`, and `getRevisions`.
+    - REST Controllers: `GET /{jobId}/transcript`, `GET /{jobId}/segments` (with optional `page` & `size`), `GET /{jobId}/search?query=...`, `PUT /{jobId}/segments/{segmentId}`, `PUT /{jobId}/segments/{segmentId}/speaker`, `GET /{jobId}/revisions`.
+    - Full integration test suite with 21 tests in `TranscriptionControllerIntegrationTest` and 55/55 total backend tests passing.
+  - Angular 17 interactive transcript editor frontend:
+    - Updated `transcription.model.ts` and `TranscriptionService` with full editor methods.
+    - In-place segment editor with start/end time numeric inputs, speaker dropdown selector, text editing textarea, and save/cancel actions.
+    - Synchronized video player seeking on segment click or edit.
+    - Full audit revisions modal displaying change history with old and new values.
+    - Production bundle verified with `ng build`.

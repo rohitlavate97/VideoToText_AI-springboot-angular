@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Phase** | Phase 8 — Speaker Diarization |
+| **Current Phase** | Phase 9 — Transcript Management and Editor |
 | **Phase Status** | Completed |
 | **Last Updated** | 2026-11-16 |
 
@@ -129,6 +129,21 @@
 
 ---
 
+## Phase 9 — Transcript Management and Editor
+
+| # | Functionality | Status | Commit | Notes |
+|---|---------------|--------|--------|-------|
+| 9.1 | Full Transcript Retrieval & Statistics | ✅ Done | `ac7acc3` | `TranscriptResponse`, aggregated word counts, duration, and segment mapping |
+| 9.2 | Segment Pagination & Large Transcript Support | ✅ Done | `ac7acc3` | `PageResponse<TranscriptSegmentResponse>` with size limits |
+| 9.3 | In-Place Segment Text & Timestamp Editing | ✅ Done | `3e6d317` | `UpdateTranscriptSegmentRequest`, start/end timestamp validation ($0 \le \text{start} < \text{end}$) |
+| 9.4 | Speaker Reassignment & Dropdown Allocation | ✅ Done | `c166741` | `ReassignSpeakerRequest`, job-scoped speaker validation |
+| 9.5 | Keyword & Full-Text Transcript Search | ✅ Done | `c239f01` | `TranscriptSearchResponse`, case-insensitive segment text search |
+| 9.6 | Angular Interactive Transcript Editor UI | ✅ Done | `f3b0f01` | In-place editing panel, timing inputs, speaker select, save/cancel actions |
+| 9.7 | Transcript Revision History & Audit Log | ✅ Done | `f3b0f01` | Flyway V14 `transcript_revisions` audit tracking and frontend history modal |
+| 9.8 | Comprehensive Editing Test Suite | ✅ Done | `af2a735` | 8 integration tests covering retrieval, editing, validation, search, and revisions (55/55 passed) |
+
+---
+
 ## Phase Checklist
 
 | Phase | Description | Status |
@@ -142,8 +157,8 @@
 | **Phase 6** | ASR engine and transcription | ✅ Completed |
 | **Phase 7** | Transcription orchestration and performance optimization | ✅ Completed |
 | **Phase 8** | Speaker diarization | ✅ Completed |
-| Phase 9 | Transcript management and editor | ⬜ Next |
-| Phase 10 | Translation | ⬜ Not Started |
+| **Phase 9** | Transcript management and editor | ✅ Completed |
+| Phase 10 | Translation | ⬜ Next |
 | Phase 11 | AI summary and intelligent insights | ⬜ Not Started |
 | Phase 12 | Subtitle generation and exports | ⬜ Not Started |
 | Phase 13 | Angular dashboard and complete user experience | ⬜ Not Started |
@@ -158,4 +173,4 @@
 
 ## Next Step
 
-Begin Phase 9: Transcript management and editor (in-place segment editing, search and replace, timestamp adjustments, multi-format export [TXT, SRT, VTT, JSON, PDF], and revision history).
+Begin Phase 10: Translation (translation provider abstraction, MarianMT / NLLB / cloud integration, multilingual translation pipeline for English, Hindi, and Marathi, translated segment storage, and frontend multilingual switching).
