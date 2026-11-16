@@ -122,3 +122,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Synchronized video player seeking on segment click or edit.
     - Full audit revisions modal displaying change history with old and new values.
     - Production bundle verified with `ng build`.
+- **Phase 10**:
+  - Python AI Worker translation engine:
+    - Provider abstraction (`BaseTranslationProvider` ABC) and models (`SupportedLanguage`, `TranslatedSegment`, `TranslationQualityReport`, `TranslationResult`).
+    - Providers: `DictionaryTranslationProvider` (pure Python, curated English <-> Hindi and English <-> Marathi vocabularies, zero C-extensions, fully WDAC safe), `HelsinkiMarianProvider` (neural pipeline with fallback), `MockTranslationProvider`, and `TranslationEngineFactory`.
+    - `TranslationQualityChecker` evaluating length ratios, Devanagari Unicode script integrity (`0x0900 - 0x097F`), and heuristic quality scoring.
+    - `TranslationPipeline` batch translating segments while strictly preserving start/end timestamps and speaker attributions.
+    - `VideoTranscriptionProcessor` pipeline integration with stage 5 (`TRANSLATING`) in ASR lifecycle.
+    - Pytest suite with 10 translation tests (53/53 total tests passing).
+  - Spring Boot 3.5.0 multilingual translation backend:
+    - `Translation` entity mapped to Flyway `translations` table (V9) with `TranslationRepository`.
+    - DTOs: `TranslatedSegmentDto`, `TranslationResponse`, `CreateTranslationRequest`.
+    - `TranslationService` managing translation listing, retrieval, on-demand synthesis, MinIO/S3 segment serialization, and non-duplicate constraint enforcement.
+    - `TranslationController` REST endpoints: `GET /{jobId}/translations`, `GET /{jobId}/translations/{language}`, `POST /{jobId}/translations`.
+    - `TranslationControllerIntegrationTest` with 7 integration tests covering all paths and access control (62/62 total backend tests passing).
+  - Angular 17 multilingual frontend:
+    - `translation.model.ts` and `TranslationService`.
+    - Language selection bar with chips for `Original [EN]`, `हिन्दी [HI]`, and `मराठी [MR]`.
+    - On-demand translation generation trigger with progress indicator.
+    - Synchronized video preview player seeking across all languages with preserved timestamp pills and diarized speaker badges.
+    - Production bundle clean (`ng build`, 406 kB initial bundle).

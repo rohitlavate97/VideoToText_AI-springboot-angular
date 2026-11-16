@@ -4,9 +4,9 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Phase** | Phase 9 — Transcript Management and Editor |
+| **Current Phase** | Phase 10 — Translation |
 | **Phase Status** | Completed |
-| **Last Updated** | 2026-11-16 |
+| **Last Updated** | 2026-11-17 |
 
 ---
 
@@ -144,6 +144,18 @@
 
 ---
 
+## Phase 10 — Translation
+
+| # | Functionality | Status | Commit | Notes |
+|---|---------------|--------|--------|-------|
+| 10.1 | Translation Provider Abstraction | ✅ Done | `7fb6164` | `BaseTranslationProvider` ABC, `SupportedLanguage` (en, hi, mr, es, fr, de), quality checking |
+| 10.2 | Translation Engines & Factory | ✅ Done | `565b98a` | `DictionaryTranslationProvider` (pure Python, WDAC safe), `HelsinkiMarianProvider`, `TranslationEngineFactory` |
+| 10.3 | Multilingual Pipeline & Backend Entities | ✅ Done | `eb91bf4` | `TranslationPipeline`, `Translation` entity (Flyway V9), `TranslationService`, `TranslationController` REST APIs |
+| 10.4 | Timestamp & Speaker Preservation UI | ✅ Done | `69111e4` | Preserved start/end timestamps, speaker badges, language selector chips (`Original [EN]`, `हिन्दी [HI]`, `मराठी [MR]`) |
+| 10.5 | Translation Test Suites (Pytest & Maven) | ✅ Done | `bfbd45d` | 10 AI worker pytest tests (53/53 total), 7 Spring Boot integration tests (62/62 total), Angular build clean |
+
+---
+
 ## Phase Checklist
 
 | Phase | Description | Status |
@@ -158,8 +170,8 @@
 | **Phase 7** | Transcription orchestration and performance optimization | ✅ Completed |
 | **Phase 8** | Speaker diarization | ✅ Completed |
 | **Phase 9** | Transcript management and editor | ✅ Completed |
-| Phase 10 | Translation | ⬜ Next |
-| Phase 11 | AI summary and intelligent insights | ⬜ Not Started |
+| **Phase 10** | Translation | ✅ Completed |
+| Phase 11 | AI summary and intelligent insights | ⬜ Next |
 | Phase 12 | Subtitle generation and exports | ⬜ Not Started |
 | Phase 13 | Angular dashboard and complete user experience | ⬜ Not Started |
 | Phase 14 | Real-time processing updates | ⬜ Not Started |
@@ -173,4 +185,4 @@
 
 ## Next Step
 
-Begin Phase 10: Translation (translation provider abstraction, MarianMT / NLLB / cloud integration, multilingual translation pipeline for English, Hindi, and Marathi, translated segment storage, and frontend multilingual switching).
+Begin Phase 11: AI Summary and Intelligent Insights (LLM provider abstraction, extractive and abstractive summarization, action items, key topic extraction, sentiment analysis, meeting minutes generation, and Angular insights dashboard).
