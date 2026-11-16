@@ -1,0 +1,130 @@
+<div class="video-detail-container">
+  <!-- Loading State -->
+  <div class="loading-state" *ngIf="isLoading">
+    <mat-spinner diameter="48"></mat-spinner>
+    <p>Loading video details and generating secure streaming link...</p>
+  </div>
+
+  <!-- Error State -->
+  <div class="error-container" *ngIf="!isLoading && errorMessage">
+    <mat-icon class="error-icon">error_outline</mat-icon>
+    <h3>Error</h3>
+    <p>{{ errorMessage }}</p>
+    <a mat-stroked-button routerLink="/videos">
+      <mat-icon>arrow_back</mat-icon>
+      Back to Library
+    </a>
+  </div>
+
+  <!-- Main Video Detail View -->
+  <div class="detail-content" *ngIf="!isLoading && video">
+    <!-- Top Bar Navigation -->
+    <div class="top-nav">
+      <a mat-button routerLink="/videos" class="back-link">
+        <mat-icon>arrow_back</mat-icon>
+        Back to Library
+      </a>
+      <div class="status-indicator" [ngClass]="'status-' + video.status.toLowerCase()">
+        {{ video.status }}
+      </div>
+    </div>
+
+    <!-- Header -->
+    <div class="header-section">
+      <div class="title-meta">
+        <h1 class="video-title">{{ video.originalFilename }}</h1>
+        <span class="upload-date">Uploaded on {{ video.createdAt | date:'fullDate' }}</span>
+      </div>
+      <div class="action-buttons">
+        <a mat-raised-button color="primary" [href]="video.downloadUrl" target="_blank" *ngIf="video.downloadUrl">
+          <mat-icon>download</mat-icon>
+          Download Original
+        </a>
+        <button mat-stroked-button color="warn" (click)="deleteVideo()">
+          <mat-icon>delete</mat-icon>
+          Delete
+        </button>
+      </div>
+    </div>
+
+    <!-- Main Layout Grid -->
+    <div class="content-grid">
+      <!-- Left Column: Video Player -->
+      <div class="player-column">
+        <div class="player-wrapper">
+          <video
+            *ngIf="video.downloadUrl"
+            controls
+            preload="metadata"
+            class="video-player"
+            [src]="video.downloadUrl"
+          >
+            Your browser does not support HTML5 video preview.
+          </video>
+          <div *ngIf="!video.downloadUrl" class="no-player-banner">
+            <mat-icon>videocam_off</mat-icon>
+            <p>Video streaming link is unavailable</p>
+          </div>
+        </div>
+
+        <!-- Transcription CTA Card -->
+        <mat-card class="transcribe-card">
+          <div class="transcribe-header">
+            <div class="ai-icon">
+              <mat-icon>auto_awesome</mat-icon>
+            </div>
+            <div>
+              <h3>AI Speech-to-Text Transcription</h3>
+              <p>Extract spoken audio into timestamped, speaker-diarized text with Whisper & PyAnnote.</p>
+            </div>
+          </div>
+          <div class="transcribe-actions">
+            <button mat-raised-button color="accent" [disabled]="video.status === 'PROCESSING'">
+              <mat-icon>transcribe</mat-icon>
+              {{ video.status === 'PROCESSING' ? 'Transcription in Progress...' : 'Start Transcription' }}
+            </button>
+          </div>
+        </mat-card>
+      </div>
+
+      <!-- Right Column: Technical Specs Card -->
+      <div class="specs-column">
+        <mat-card class="specs-card">
+          <mat-card-header>
+            <mat-card-title>
+              <mat-icon>info</mat-icon>
+              Technical Specifications
+            </mat-card-title>
+          </mat-card-header>
+
+          <mat-card-content class="specs-content">
+            <div class="spec-row">
+              <span class="spec-label">Duration</span>
+              <span class="spec-val highlight">{{ formatDuration(video.durationSeconds) }}</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-label">File Size</span>
+              <span class="spec-val">{{ formatFileSize(video.fileSizeBytes) }}</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-label">Resolution</span>
+              <span class="spec-val">{{ video.resolution || 'Standard' }}</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-label">Video Codec</span>
+              <span class="spec-val">{{ video.codec | uppercase }}</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-label">MIME Type</span>
+              <span class="spec-val">{{ video.contentType || 'video/mp4' }}</span>
+            </div>
+            <div class="spec-row">
+              <span class="spec-label">Storage ID</span>
+              <span class="spec-val code">{{ video.id }}</span>
+            </div>
+          </mat-card-content>
+        </mat-card>
+      </div>
+    </div>
+  </div>
+</div>

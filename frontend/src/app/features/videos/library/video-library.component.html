@@ -1,0 +1,142 @@
+<div class="video-library-container">
+  <div class="page-header">
+    <div class="header-titles">
+      <h1>Video Library</h1>
+      <p class="subtitle">Manage uploaded media, monitor transcription jobs, and view extracted transcripts</p>
+    </div>
+    <div class="header-actions">
+      <a mat-raised-button color="primary" routerLink="/videos/upload">
+        <mat-icon>cloud_upload</mat-icon>
+        Upload Video
+      </a>
+    </div>
+  </div>
+
+  <!-- Filters & Search Toolbar -->
+  <div class="toolbar-section">
+    <div class="status-chips">
+      <button
+        type="button"
+        class="filter-chip"
+        [class.active]="selectedStatus === status"
+        *ngFor="let status of statusFilters"
+        (click)="onFilterStatus(status)"
+      >
+        {{ status }}
+      </button>
+    </div>
+
+    <div class="search-box">
+      <mat-icon>search</mat-icon>
+      <input
+        type="text"
+        placeholder="Search videos by title or codec..."
+        [(ngModel)]="searchTerm"
+        (ngModelChange)="onSearchChange()"
+      />
+      <button *ngIf="searchTerm" (click)="searchTerm = ''; onSearchChange()" class="clear-btn">
+        <mat-icon>close</mat-icon>
+      </button>
+    </div>
+  </div>
+
+  <!-- Loading Spinner -->
+  <div class="loading-state" *ngIf="isLoading">
+    <mat-spinner diameter="44"></mat-spinner>
+    <p>Loading your video catalog...</p>
+  </div>
+
+  <!-- Content / Video Grid -->
+  <div *ngIf="!isLoading">
+    <div class="video-grid" *ngIf="filteredVideos.length > 0">
+      <mat-card class="video-card" *ngFor="let video of filteredVideos" [routerLink]="['/videos', video.id]">
+        <!-- Video Card Thumbnail Header -->
+        <div class="thumbnail-placeholder">
+          <mat-icon class="play-icon">smart_display</mat-icon>
+          <span class="duration-badge">{{ formatDuration(video.durationSeconds) }}</span>
+          <span class="status-tag" [ngClass]="'status-' + video.status.toLowerCase()">
+            {{ video.status }}
+          </span>
+        </div>
+
+        <mat-card-content class="card-body">
+          <h3 class="video-title" [matTooltip]="video.originalFilename">
+            {{ video.originalFilename }}
+          </h3>
+
+          <div class="video-specs">
+            <span class="spec-item">
+              <mat-icon>aspect_ratio</mat-icon>
+              {{ video.resolution || 'N/A' }}
+            </span>
+            <span class="spec-item">
+              <mat-icon>movie_filter</mat-icon>
+              {{ video.codec | uppercase }}
+            </span>
+            <span class="spec-item">
+              <mat-icon>data_usage</mat-icon>
+              {{ formatFileSize(video.fileSizeBytes) }}
+            </span>
+          </div>
+
+          <div class="upload-date">
+            <span>Uploaded {{ video.createdAt | date:'mediumDate' }}</span>
+          </div>
+        </mat-card-content>
+
+        <mat-card-actions class="card-actions" (click)="$event.stopPropagation()">
+          <a mat-button color="primary" [routerLink]="['/videos', video.id]">
+            <mat-icon>visibility</mat-icon>
+            Details
+          </a>
+          <button mat-icon-button color="warn" matTooltip="Delete Video" (click)="deleteVideo(video, $event)">
+            <mat-icon>delete_outline</mat-icon>
+          </button>
+        </mat-card-actions>
+      </mat-card>
+    </div>
+
+    <!-- Empty State -->
+    <div class="empty-state" *ngIf="filteredVideos.length === 0">
+      <div class="empty-icon-circle">
+        <mat-icon>video_library</mat-icon>
+      </div>
+      <h3>No Videos Found</h3>
+      <p *ngIf="searchTerm || selectedStatus !== 'ALL'">
+        No videos match your current search criteria. Try resetting the status filter or search term.
+      </p>
+      <p *ngIf="!searchTerm && selectedStatus === 'ALL'">
+        You haven't uploaded any videos yet. Upload your first video to start automated AI transcription and semantic search.
+      </p>
+      <a mat-raised-button color="primary" routerLink="/videos/upload">
+        <mat-icon>cloud_upload</mat-icon>
+        Upload Your First Video
+      </a>
+    </div>
+
+    <!-- Pagination Footer -->
+    <div class="pagination-footer" *ngIf="totalPages > 1">
+      <button
+        mat-button
+        [disabled]="currentPage === 0"
+        (click)="goToPage(currentPage - 1)"
+      >
+        <mat-icon>chevron_left</mat-icon>
+        Previous
+      </button>
+
+      <span class="page-indicator">
+        Page {{ currentPage + 1 }} of {{ totalPages }} ({{ totalElements }} total videos)
+      </span>
+
+      <button
+        mat-button
+        [disabled]="currentPage >= totalPages - 1"
+        (click)="goToPage(currentPage + 1)"
+      >
+        Next
+        <mat-icon>chevron_right</mat-icon>
+      </button>
+    </div>
+  </div>
+</div>

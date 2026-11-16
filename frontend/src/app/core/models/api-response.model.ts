@@ -5,6 +5,18 @@ export interface ApiResponse<T> {
   timestamp: string;
 }
 
+export interface PageResponse<T> {
+  content: T[];
+  pageNumber: number;
+  pageSize: number;
+  totalElements: number;
+  totalPages: number;
+  first: boolean;
+  last: boolean;
+  hasNext: boolean;
+  hasPrevious: boolean;
+}
+
 export interface ValidationErrorDetail {
   field: string;
   rejectedValue?: any;

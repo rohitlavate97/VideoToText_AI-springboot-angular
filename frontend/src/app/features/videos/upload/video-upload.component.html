@@ -1,0 +1,177 @@
+<div class="video-upload-container">
+  <div class="page-header">
+    <div class="header-titles">
+      <h1>Upload Video</h1>
+      <p class="subtitle">Upload video files for AI transcription, speaker diarization, and semantic search</p>
+    </div>
+    <div class="header-actions">
+      <a mat-button routerLink="/videos">
+        <mat-icon>video_library</mat-icon>
+        View Library
+      </a>
+    </div>
+  </div>
+
+  <!-- Drag & Drop Zone -->
+  <mat-card
+    class="upload-dropzone"
+    [class.drag-over]="isDragOver"
+    (dragover)="onDragOver($event)"
+    (dragleave)="onDragLeave($event)"
+    (drop)="onDrop($event)"
+    *ngIf="uploadState.state === 'idle'"
+  >
+    <input
+      #fileInput
+      type="file"
+      (change)="onFileInputChange($event)"
+      accept="video/*,.mp4,.mkv,.avi,.mov,.webm,.flv,.wmv,.mpeg,.3gp"
+      hidden
+    />
+
+    <div class="dropzone-content" (click)="triggerFileInput()">
+      <div class="icon-circle">
+        <mat-icon class="cloud-icon">cloud_upload</mat-icon>
+      </div>
+      <h3>Drag and drop your video here</h3>
+      <p class="drag-hint">or <span class="browse-link">browse from your computer</span></p>
+
+      <div class="supported-formats">
+        <span class="label">Supported formats:</span>
+        <div class="formats-list">
+          <span class="format-badge" *ngFor="let ext of allowedExtensions">{{ ext | uppercase }}</span>
+        </div>
+      </div>
+      <p class="limit-info">Maximum duration: 240 minutes (4 hours) • Maximum file size: 10 GB</p>
+    </div>
+
+    <!-- Selected File Confirmation Preview -->
+    <div class="selected-file-banner" *ngIf="selectedFile">
+      <div class="file-details">
+        <mat-icon class="file-icon">movie</mat-icon>
+        <div class="file-text">
+          <span class="file-name">{{ selectedFile.name }}</span>
+          <span class="file-meta">{{ formatFileSize(selectedFile.size) }}</span>
+        </div>
+      </div>
+      <div class="banner-actions">
+        <button mat-stroked-button (click)="$event.stopPropagation(); resetUpload()">Cancel</button>
+        <button mat-raised-button color="primary" (click)="$event.stopPropagation(); startUpload()">
+          <mat-icon>upload</mat-icon>
+          Start Upload
+        </button>
+      </div>
+    </div>
+  </mat-card>
+
+  <!-- Validation Error Alert -->
+  <div class="alert alert-error" *ngIf="validationError">
+    <mat-icon>error_outline</mat-icon>
+    <span>{{ validationError }}</span>
+  </div>
+
+  <!-- Uploading / Processing Progress Card -->
+  <mat-card class="progress-card" *ngIf="uploadState.state === 'uploading' || uploadState.state === 'processing'">
+    <div class="progress-header">
+      <div class="file-info">
+        <mat-icon class="pulsing-icon">cloud_upload</mat-icon>
+        <div>
+          <h4>{{ selectedFile?.name }}</h4>
+          <span class="bytes-counter" *ngIf="uploadState.state === 'uploading'">
+            {{ formatFileSize(uploadState.uploadedBytes || 0) }} / {{ formatFileSize(uploadState.totalBytes || 0) }}
+          </span>
+          <span class="processing-text" *ngIf="uploadState.state === 'processing'">
+            Processing media & extracting audio tracks...
+          </span>
+        </div>
+      </div>
+      <span class="percentage">{{ uploadState.progress }}%</span>
+    </div>
+
+    <mat-progress-bar
+      [mode]="uploadState.state === 'processing' ? 'indeterminate' : 'determinate'"
+      [value]="uploadState.progress"
+      color="primary"
+    ></mat-progress-bar>
+
+    <div class="progress-status-hint">
+      <mat-icon *ngIf="uploadState.state === 'uploading'">speed</mat-icon>
+      <mat-icon *ngIf="uploadState.state === 'processing'">hourglass_top</mat-icon>
+      <span>
+        {{ uploadState.state === 'uploading'
+            ? 'Uploading video payload to secure cloud storage...'
+            : 'Validating video stream container, duration, and audio codec...' }}
+      </span>
+    </div>
+  </mat-card>
+
+  <!-- Upload Success Card -->
+  <mat-card class="success-card" *ngIf="uploadState.state === 'completed' && uploadState.video">
+    <div class="success-banner">
+      <div class="success-icon-circle">
+        <mat-icon>check_circle</mat-icon>
+      </div>
+      <div class="success-titles">
+        <h3>Video Uploaded Successfully!</h3>
+        <p>File has been verified and stored in cloud object storage.</p>
+      </div>
+    </div>
+
+    <div class="video-meta-summary">
+      <div class="meta-item">
+        <span class="meta-label">File Name</span>
+        <span class="meta-val">{{ uploadState.video.originalFilename }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Duration</span>
+        <span class="meta-val">{{ formatDuration(uploadState.video.durationSeconds) }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Resolution</span>
+        <span class="meta-val">{{ uploadState.video.resolution }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Codec</span>
+        <span class="meta-val">{{ uploadState.video.codec | uppercase }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">File Size</span>
+        <span class="meta-val">{{ formatFileSize(uploadState.video.fileSizeBytes) }}</span>
+      </div>
+    </div>
+
+    <div class="success-actions">
+      <button mat-stroked-button (click)="resetUpload()">
+        <mat-icon>add</mat-icon>
+        Upload Another Video
+      </button>
+      <a mat-button routerLink="/videos">
+        <mat-icon>video_library</mat-icon>
+        Go to Library
+      </a>
+      <a mat-raised-button color="primary" [routerLink]="['/videos', uploadState.video.id]">
+        <mat-icon>visibility</mat-icon>
+        View Details & Transcribe
+      </a>
+    </div>
+  </mat-card>
+
+  <!-- Upload Error Card -->
+  <mat-card class="error-card" *ngIf="uploadState.state === 'error'">
+    <div class="error-banner">
+      <div class="error-icon-circle">
+        <mat-icon>error</mat-icon>
+      </div>
+      <div>
+        <h3>Upload Failed</h3>
+        <p class="error-msg">{{ uploadState.errorMessage }}</p>
+      </div>
+    </div>
+    <div class="error-actions">
+      <button mat-raised-button color="warn" (click)="resetUpload()">
+        <mat-icon>refresh</mat-icon>
+        Try Again
+      </button>
+    </div>
+  </mat-card>
+</div>
