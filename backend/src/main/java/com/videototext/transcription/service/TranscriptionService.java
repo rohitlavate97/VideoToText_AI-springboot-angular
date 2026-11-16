@@ -1,6 +1,7 @@
 package com.videototext.transcription.service;
 
 import com.videototext.common.dto.PageResponse;
+import com.videototext.common.exception.BadRequestException;
 import com.videototext.common.exception.ForbiddenException;
 import com.videototext.common.exception.ResourceNotFoundException;
 import com.videototext.speaker.entity.Speaker;
@@ -11,6 +12,7 @@ import com.videototext.transcription.dto.TranscriptRevisionResponse;
 import com.videototext.transcription.dto.TranscriptSegmentResponse;
 import com.videototext.transcription.dto.TranscriptionJobResponse;
 import com.videototext.transcription.dto.TranscriptionMessagePayload;
+import com.videototext.transcription.dto.UpdateTranscriptSegmentRequest;
 import com.videototext.transcription.entity.TranscriptRevision;
 import com.videototext.transcription.entity.TranscriptSegment;
 import com.videototext.transcription.entity.TranscriptionJob;
@@ -252,6 +254,96 @@ public class TranscriptionService {
                 .stream()
                 .map(TranscriptRevisionResponse::fromEntity)
                 .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public TranscriptSegmentResponse updateSegment(UUID userId, UUID jobId, UUID segmentId, UpdateTranscriptSegmentRequest request) {
+        TranscriptionJob job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("TranscriptionJob", "id", jobId));
+
+        if (!job.getUser().getId().equals(userId)) {
+            throw new ForbiddenException("You do not have permission to modify segments for this job");
+        }
+
+        TranscriptSegment segment = segmentRepository.findByIdAndJobId(segmentId, jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("TranscriptSegment", "id", segmentId));
+
+        if (request.getText() != null && !request.getText().equals(segment.getText())) {
+            revisionRepository.save(TranscriptRevision.builder()
+                    .job(job)
+                    .userId(userId)
+                    .revisionType("UPDATE_TEXT")
+                    .segmentId(segmentId)
+                    .fieldChanged("text")
+                    .oldValue(segment.getText())
+                    .newValue(request.getText())
+                    .build());
+            segment.setText(request.getText());
+        }
+
+        if (request.getStartTime() != null || request.getEndTime() != null) {
+            float newStart = request.getStartTime() != null ? request.getStartTime() : segment.getStartTime();
+            float newEnd = request.getEndTime() != null ? request.getEndTime() : segment.getEndTime();
+
+            if (newStart < 0 || newEnd <= newStart) {
+                throw new BadRequestException("Start time must be non-negative and less than end time");
+            }
+
+            if (request.getStartTime() != null && Float.compare(segment.getStartTime(), newStart) != 0) {
+                revisionRepository.save(TranscriptRevision.builder()
+                        .job(job)
+                        .userId(userId)
+                        .revisionType("UPDATE_TIMESTAMP")
+                        .segmentId(segmentId)
+                        .fieldChanged("startTime")
+                        .oldValue(String.valueOf(segment.getStartTime()))
+                        .newValue(String.valueOf(newStart))
+                        .build());
+                segment.setStartTime(newStart);
+            }
+
+            if (request.getEndTime() != null && Float.compare(segment.getEndTime(), newEnd) != 0) {
+                revisionRepository.save(TranscriptRevision.builder()
+                        .job(job)
+                        .userId(userId)
+                        .revisionType("UPDATE_TIMESTAMP")
+                        .segmentId(segmentId)
+                        .fieldChanged("endTime")
+                        .oldValue(String.valueOf(segment.getEndTime()))
+                        .newValue(String.valueOf(newEnd))
+                        .build());
+                segment.setEndTime(newEnd);
+            }
+        }
+
+        if (request.getSpeakerId() != null) {
+            Speaker speaker = speakerRepository.findById(request.getSpeakerId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Speaker", "id", request.getSpeakerId()));
+            if (!speaker.getJob().getId().equals(jobId)) {
+                throw new BadRequestException("Speaker does not belong to this transcription job");
+            }
+
+            if (segment.getSpeakerId() == null || !segment.getSpeakerId().equals(request.getSpeakerId())) {
+                revisionRepository.save(TranscriptRevision.builder()
+                        .job(job)
+                        .userId(userId)
+                        .revisionType("REASSIGN_SPEAKER")
+                        .segmentId(segmentId)
+                        .fieldChanged("speakerId")
+                        .oldValue(segment.getSpeakerId() != null ? segment.getSpeakerId().toString() : null)
+                        .newValue(request.getSpeakerId().toString())
+                        .build());
+                segment.setSpeakerId(request.getSpeakerId());
+            }
+        }
+
+        segment = segmentRepository.save(segment);
+
+        Map<UUID, Speaker> speakerMap = speakerRepository.findByJobIdOrderBySpeakerLabelAsc(jobId)
+                .stream()
+                .collect(Collectors.toMap(Speaker::getId, Function.identity(), (a, b) -> a));
+
+        return TranscriptSegmentResponse.fromEntity(segment, speakerMap);
     }
 
     @Transactional
