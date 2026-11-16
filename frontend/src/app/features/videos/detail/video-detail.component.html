@@ -49,10 +49,11 @@
 
     <!-- Main Layout Grid -->
     <div class="content-grid">
-      <!-- Left Column: Video Player -->
+      <!-- Left Column: Video Player & Controls -->
       <div class="player-column">
         <div class="player-wrapper">
           <video
+            #videoElement
             *ngIf="video.downloadUrl"
             controls
             preload="metadata"
@@ -67,28 +68,101 @@
           </div>
         </div>
 
-        <!-- Transcription CTA Card -->
-        <mat-card class="transcribe-card">
+        <!-- Live Transcription Progress Card -->
+        <mat-card class="transcribe-card progress-mode" *ngIf="activeJob && (activeJob.status === 'PROCESSING' || activeJob.status === 'QUEUED')">
+          <div class="transcribe-header">
+            <div class="ai-icon spinning">
+              <mat-icon>sync</mat-icon>
+            </div>
+            <div class="job-stage-info">
+              <div class="stage-tag">{{ activeJob.currentStage }}</div>
+              <h3>Transcription in Progress ({{ activeJob.progressPercent | number:'1.0-1' }}%)</h3>
+              <p class="stage-msg">{{ progressEvent?.message || 'Orchestrating speech-to-text pipeline...' }}</p>
+            </div>
+          </div>
+
+          <mat-progress-bar mode="determinate" [value]="activeJob.progressPercent" class="live-progress-bar"></mat-progress-bar>
+
+          <div class="progress-footer">
+            <span *ngIf="activeJob.totalChunks > 0" class="chunk-counter">
+              Chunk {{ activeJob.completedChunks }} of {{ activeJob.totalChunks }}
+            </span>
+            <button mat-button color="warn" (click)="cancelJob()">
+              <mat-icon>cancel</mat-icon>
+              Cancel Job
+            </button>
+          </div>
+        </mat-card>
+
+        <!-- Transcription CTA Card (When not actively processing) -->
+        <mat-card class="transcribe-card" *ngIf="!activeJob || (activeJob.status !== 'PROCESSING' && activeJob.status !== 'QUEUED')">
           <div class="transcribe-header">
             <div class="ai-icon">
               <mat-icon>auto_awesome</mat-icon>
             </div>
             <div>
               <h3>AI Speech-to-Text Transcription</h3>
-              <p>Extract spoken audio into timestamped, speaker-diarized text with Whisper & PyAnnote.</p>
+              <p>Extract spoken audio into timestamped, speaker-diarized text with Faster-Whisper & PyAnnote.</p>
             </div>
           </div>
           <div class="transcribe-actions">
-            <button mat-raised-button color="accent" [disabled]="video.status === 'PROCESSING'">
+            <button mat-raised-button color="accent" (click)="openTranscriptionDialog()">
               <mat-icon>transcribe</mat-icon>
-              {{ video.status === 'PROCESSING' ? 'Transcription in Progress...' : 'Start Transcription' }}
+              {{ activeJob && activeJob.status === 'COMPLETED' ? 'Re-transcribe with New Settings' : 'Start Transcription' }}
             </button>
           </div>
         </mat-card>
       </div>
 
-      <!-- Right Column: Technical Specs Card -->
+      <!-- Right Column: Interactive Transcript / Specs -->
       <div class="specs-column">
+        <!-- Transcript Segment Viewer (When Completed) -->
+        <mat-card class="transcript-card" *ngIf="activeJob && activeJob.status === 'COMPLETED'">
+          <mat-card-header class="transcript-header">
+            <mat-card-title class="title-with-badge">
+              <mat-icon>notes</mat-icon>
+              Transcript
+              <span class="segment-badge">{{ segments.length }} segments</span>
+            </mat-card-title>
+          </mat-card-header>
+
+          <div class="transcript-search">
+            <mat-form-field appearance="outline" class="search-field">
+              <mat-icon matPrefix>search</mat-icon>
+              <input matInput [(ngModel)]="searchQuery" placeholder="Search spoken text..." />
+              <button *ngIf="searchQuery" matSuffix mat-icon-button (click)="searchQuery = ''">
+                <mat-icon>close</mat-icon>
+              </button>
+            </mat-form-field>
+          </div>
+
+          <mat-card-content class="segments-container">
+            <div class="segments-list" *ngIf="filteredSegments.length > 0">
+              <div
+                *ngFor="let seg of filteredSegments"
+                class="segment-item"
+                (click)="seekTo(seg.startTime)"
+              >
+                <div class="segment-meta">
+                  <button class="timestamp-pill" (click)="$event.stopPropagation(); seekTo(seg.startTime)">
+                    <mat-icon>play_circle</mat-icon>
+                    {{ formatSeconds(seg.startTime) }} - {{ formatSeconds(seg.endTime) }}
+                  </button>
+                  <span *ngIf="seg.speakerLabel" class="speaker-tag">{{ seg.speakerLabel }}</span>
+                  <span class="confidence-tag">{{ (seg.confidence * 100) | number:'1.0-0' }}%</span>
+                </div>
+                <p class="segment-text">{{ seg.text }}</p>
+              </div>
+            </div>
+
+            <div class="empty-transcript" *ngIf="filteredSegments.length === 0">
+              <mat-icon>search_off</mat-icon>
+              <p>{{ searchQuery ? 'No segments match your search query.' : 'No transcript segments found.' }}</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- Technical Specs Card -->
         <mat-card class="specs-card">
           <mat-card-header>
             <mat-card-title>
