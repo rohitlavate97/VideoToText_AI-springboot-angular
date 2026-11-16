@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Phase** | Phase 3 — Authentication and User Management |
+| **Current Phase** | Phase 7 — Transcription Orchestration and Performance Optimization |
 | **Phase Status** | Completed |
 | **Last Updated** | 2026-11-16 |
 
@@ -101,6 +101,19 @@
 
 ---
 
+## Phase 7 — Transcription Orchestration and Performance Optimization
+
+| # | Functionality | Status | Commit | Notes |
+|---|---------------|--------|--------|-------|
+| 7.1 | EBU R128 Loudness Audio Normalization | ✅ Done | `032c124` | AudioExtractor with FFmpeg two-pass/filter loudnorm (I=-16, TP=-1.5, LRA=11, 16kHz mono) |
+| 7.2 | Audio Overlap Windowing & Boundary Preservation | ✅ Done | `e8a9321` | VADChunker configured with configurable overlap seconds (1.0s) to prevent clipped boundary phonemes |
+| 7.3 | GPU-Aware Chunk Scheduling & Resilient Retry | ✅ Done | `e8a9321` | ChunkScheduler with safe VRAM concurrency bounds (1-4 workers) and exponential backoff retry |
+| 7.4 | Chronological Stitching & Overlap Deduplication | ✅ Done | `c39dd2d` | TranscriptMerger offsetting local timestamps into global audio coordinates and eliminating overlap duplicates |
+| 7.5 | Spring Boot Job Orchestration & Event Consumer | ✅ Done | `2acba40` | TranscriptionJob/Chunk/Segment/Event entities, RabbitMQ producer & consumer, SSE emitter stream, 38/38 tests passing |
+| 7.6 | Angular Real-Time Transcription Experience | ✅ Done | `4acc8ea` | Transcription configuration dialog, SSE live progress bar with active stage tracker, interactive clickable transcript viewer |
+
+---
+
 ## Phase Checklist
 
 | Phase | Description | Status |
@@ -112,8 +125,8 @@
 | **Phase 4** | Video upload and management | ✅ Completed |
 | **Phase 5** | Python AI worker foundation | ✅ Completed |
 | **Phase 6** | ASR engine and transcription | ✅ Completed |
-| **Phase 7** | Transcription orchestration and performance optimization | ⬜ Next |
-| Phase 8 | Speaker diarization | ⬜ Not Started |
+| **Phase 7** | Transcription orchestration and performance optimization | ✅ Completed |
+| Phase 8 | Speaker diarization | ⬜ Next |
 | Phase 9 | Transcript management and editor | ⬜ Not Started |
 | Phase 10 | Translation | ⬜ Not Started |
 | Phase 11 | AI summary and intelligent insights | ⬜ Not Started |
@@ -130,4 +143,4 @@
 
 ## Next Step
 
-Begin Phase 7: Transcription orchestration and performance optimization (Spring Boot job submission, DB persistence for segments/words, parallel chunk dispatching, progress tracking via RabbitMQ event consumer, SSE event stream).
+Begin Phase 8: Speaker diarization (PyAnnote Audio 3.1 integration, HuggingFace authentication token management, speaker embedding extraction, clustering, speaker turn segmentation, and speaker label alignment with transcript segments).

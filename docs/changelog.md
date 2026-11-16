@@ -71,3 +71,19 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `VideoTranscriptionProcessor` executing end-to-end multi-stage pipeline with global timeline offset calculation and progress event dispatching.
   - `ASRBenchmarkSuite` profiling 10m, 30m, 1h, and 4h audio workloads with Real-Time Factor (RTF) and memory telemetry.
   - Full test suite passing (30/30 pytest tests passing).
+- **Phase 7**:
+  - `AudioExtractor` enhanced with EBU R128 loudness normalization (`-af loudnorm=I=-16:TP=-1.5:LRA=11,aresample=16000`) for balanced acoustic dynamics before ASR.
+  - `VADChunker` updated with overlap windowing (`overlap_seconds=1.0`) to eliminate boundary phoneme clipping across chunk edges.
+  - `ChunkScheduler` implemented with GPU VRAM-aware concurrency bounds (1 to 4 parallel workers) and chunk-level exponential backoff retries.
+  - `TranscriptMerger` implemented for chronological chunk stitching, timeline offset conversion, and boundary overlap de-duplication.
+  - Backend Spring Boot 3.5.0 transcription orchestration:
+    - Entities: `TranscriptionJob`, `TranscriptionChunk`, `TranscriptSegment`, `ProcessingEventRecord`.
+    - Repositories: `TranscriptionJobRepository`, `TranscriptionChunkRepository`, `TranscriptSegmentRepository`, `ProcessingEventRepository`.
+    - DTOs: `CreateTranscriptionRequest`, `TranscriptionJobResponse`, `TranscriptSegmentResponse`, `JobProgressEventDto`, `TranscriptionMessagePayload`, `TranscriptionResultPayload`.
+    - Services: `TranscriptionService` (job submission, ownership verification, lifecycle management), `TranscriptionProducer` (publishing to `videototext.exchange` / `transcription.request`), `TranscriptionEventConsumer` (listening to `processing.events` and `transcription.results`, persisting events and updating job statuses), and `SseEmitterService` (managing thread-safe Server-Sent Events subscribers per `jobId`).
+    - REST Controllers: `TranscriptionController` (`POST /api/v1/transcriptions`, `GET /api/v1/transcriptions/{jobId}`, `GET /api/v1/transcriptions`, `GET /api/v1/transcriptions/video/{videoId}`, `GET /api/v1/transcriptions/{jobId}/segments`, `POST /api/v1/transcriptions/{jobId}/cancel`) and `EventController` (`GET /api/v1/events/jobs/{jobId}` SSE stream).
+    - Comprehensive integration test suite (`TranscriptionControllerIntegrationTest`) with 38/38 Spring Boot tests passing with 0 failures.
+  - Angular 17 real-time transcription user experience:
+    - Models & services: `transcription.model.ts`, `transcription.service.ts` with RxJS SSE `EventSource` observable stream.
+    - `TranscriptionDialogComponent`: modal dialog allowing selection of language, model (`tiny` to `large-v3`), diarization, executive summary, and target translation languages.
+    - `VideoDetailComponent`: live animated progress bar, active stage indicator (`AUDIO_EXTRACTION`, `VAD_CHUNKING`, `TRANSCRIBING`, `COMPLETED`), completed chunk counter, cancel job action, and interactive segment viewer with clickable timestamp seeking on the video player and search filter.
