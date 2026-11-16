@@ -24,14 +24,23 @@ class WorkerSettings(BaseSettings):
     RABBITMQ_PASSWORD: str = "videototext_password"
     RABBITMQ_VHOST: str = "videototext"
     RABBITMQ_QUEUE: str = "transcription.requests"
+    RABBITMQ_MAIN_EXCHANGE: str = "videototext.exchange"
     RABBITMQ_RESULTS_EXCHANGE: str = "videototext.exchange"
     RABBITMQ_RESULTS_ROUTING_KEY: str = "transcription.result"
     RABBITMQ_EVENTS_ROUTING_KEY: str = "processing.event"
+    RABBITMQ_DLX_EXCHANGE: str = "videototext.dlx"
+    RABBITMQ_DLQ_ROUTING_KEY: str = "transcription.dead"
+    RABBITMQ_PREFETCH_COUNT: int = 1
+    RABBITMQ_HEARTBEAT_SECONDS: int = 60
 
     # Redis
     REDIS_HOST: str = "localhost"
     REDIS_PORT: int = 6379
     REDIS_PASSWORD: str = "videototext_password"
+    REDIS_DB: int = 0
+    IDEMPOTENCY_TTL_SECONDS: int = 86400  # 24 hours
+    IDEMPOTENCY_KEY_PREFIX: str = "job:idempotency:"
+    RETRY_KEY_PREFIX: str = "job:retries:"
 
     # PostgreSQL
     POSTGRES_HOST: str = "localhost"
@@ -44,7 +53,9 @@ class WorkerSettings(BaseSettings):
     MINIO_ENDPOINT: str = "http://localhost:9000"
     MINIO_ACCESS_KEY: str = "minioadmin"
     MINIO_SECRET_KEY: str = "minioadmin"
-    MINIO_BUCKET: str = "videototext"
+    MINIO_BUCKET: str = "videototext-media"
+    S3_REGION: str = "us-east-1"
+    S3_USE_SSL: bool = False
 
     # Processing Defaults
     ASR_DEFAULT_ENGINE: str = "faster-whisper"
@@ -53,6 +64,15 @@ class WorkerSettings(BaseSettings):
     ASR_DEVICE: str = "auto"
     CHUNK_DURATION_SECONDS: int = 600
     MAX_VIDEO_DURATION_MINUTES: int = 240
+
+    # Retry Strategy
+    MAX_RETRIES: int = 3
+    INITIAL_RETRY_DELAY_SECONDS: float = 2.0
+    BACKOFF_MULTIPLIER: float = 2.0
+
+    # Health Check API
+    HEALTH_HOST: str = "0.0.0.0"
+    HEALTH_PORT: int = 8000
 
 
 @lru_cache
