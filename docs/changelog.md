@@ -87,3 +87,24 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Models & services: `transcription.model.ts`, `transcription.service.ts` with RxJS SSE `EventSource` observable stream.
     - `TranscriptionDialogComponent`: modal dialog allowing selection of language, model (`tiny` to `large-v3`), diarization, executive summary, and target translation languages.
     - `VideoDetailComponent`: live animated progress bar, active stage indicator (`AUDIO_EXTRACTION`, `VAD_CHUNKING`, `TRANSCRIBING`, `COMPLETED`), completed chunk counter, cancel job action, and interactive segment viewer with clickable timestamp seeking on the video player and search filter.
+- **Phase 8**:
+  - Python AI Worker speaker diarization pipeline:
+    - Structured models (`DiarizationTurn`, `SpeakerProfile`, `DiarizationResult`).
+    - NIST Diarization Error Rate (DER) calculator (`DiarizationMetrics.calculate_der`).
+    - `BaseDiarizationEngine`, `AcousticDiarizationEngine` (pure Python vector math, zero WDAC-blocked C-extension requirements, fully offline and deterministic), and `PyAnnoteDiarizationEngine` (Hugging Face token authentication and GPU/CPU dispatch with automatic acoustic fallback).
+    - `DiarizationEngineFactory` dynamically instantiating optimal diarization engine.
+    - `SpeakerAssociator` calculating maximum temporal overlap between ASR segments and speaker turns with fallback to `SPEAKER_UNKNOWN`.
+    - `SpeakerReconciler` cross-chunk speaker alignment using 128-dimensional cosine similarity against global speaker centroids (threshold 0.75) and dynamic centroid updating.
+    - `VideoTranscriptionProcessor` pipeline integration with stage 4 (`SPEAKER_DIARIZATION`) progress publishing and segment speaker attribution.
+    - Pytest test suite with 43/43 tests passing.
+  - Spring Boot 3.5.0 speaker management:
+    - `Speaker` entity mapped to Flyway `speakers` table (V8).
+    - `SpeakerRepository`, `SpeakerResponse`, `UpdateSpeakerRequest`.
+    - `SpeakerService` providing job-level speaker retrieval, video ownership verification, and speaker renaming.
+    - `SpeakerController` exposing `GET /api/v1/transcriptions/{jobId}/speakers` and `PUT /api/v1/transcriptions/{jobId}/speakers/{speakerId}`.
+    - `SpeakerControllerIntegrationTest` with 44/44 backend tests passing.
+  - Angular 17 frontend speaker experience:
+    - `speaker.model.ts` and `SpeakerService` for speaker state management.
+    - Speaker filter bar with interactive chips, segment count badges, and one-click filtering.
+    - Inline speaker rename prompt updating backend and live UI.
+    - Stylized speaker tag chips on transcript segments with display names.

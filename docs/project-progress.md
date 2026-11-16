@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Phase** | Phase 7 — Transcription Orchestration and Performance Optimization |
+| **Current Phase** | Phase 8 — Speaker Diarization |
 | **Phase Status** | Completed |
 | **Last Updated** | 2026-11-16 |
 
@@ -114,6 +114,21 @@
 
 ---
 
+## Phase 8 — Speaker Diarization
+
+| # | Functionality | Status | Commit | Notes |
+|---|---------------|--------|--------|-------|
+| 8.1 | Speaker Turn, Profile & Diarization Models | ✅ Done | `3d1b083` | `DiarizationTurn`, `SpeakerProfile`, `DiarizationResult` in AI worker |
+| 8.2 | NIST Diarization Error Rate (DER) Evaluation | ✅ Done | `3d1b083` | `DiarizationMetrics.calculate_der` with missed, false alarm, and confusion metrics |
+| 8.3 | PyAnnote & Acoustic Diarization Engines | ✅ Done | `3d1b083` | `PyAnnoteDiarizationEngine` (HuggingFace token support) & WDAC-safe `AcousticDiarizationEngine` |
+| 8.4 | Temporal Overlap Speaker Association | ✅ Done | `cd90317` | `SpeakerAssociator.associate_segments` resolving segment overlaps and assigning speakers |
+| 8.5 | Cross-Chunk Speaker Reconciliation | ✅ Done | `8244ebe` | `SpeakerReconciler.reconcile_chunk` cosine similarity centroid matching (0.75 threshold) |
+| 8.6 | Diarization Pytest Suite & Pipeline Integration | ✅ Done | `41a265d` | `test_diarization.py` (6 tests), 43/43 tests passing, pipeline stage 4 of 6 |
+| 8.7 | Spring Boot Speaker Entity, Service & REST APIs | ✅ Done | `7b4f3f8` | `Speaker` entity (Flyway V8), `SpeakerService`, rename endpoints, 44/44 tests passing |
+| 8.8 | Angular Speaker Filter Bar & Inline Renaming | ✅ Done | `f8bf45f` | Interactive speaker chips, count badges, one-click filter, inline rename dialog |
+
+---
+
 ## Phase Checklist
 
 | Phase | Description | Status |
@@ -126,8 +141,8 @@
 | **Phase 5** | Python AI worker foundation | ✅ Completed |
 | **Phase 6** | ASR engine and transcription | ✅ Completed |
 | **Phase 7** | Transcription orchestration and performance optimization | ✅ Completed |
-| Phase 8 | Speaker diarization | ⬜ Next |
-| Phase 9 | Transcript management and editor | ⬜ Not Started |
+| **Phase 8** | Speaker diarization | ✅ Completed |
+| Phase 9 | Transcript management and editor | ⬜ Next |
 | Phase 10 | Translation | ⬜ Not Started |
 | Phase 11 | AI summary and intelligent insights | ⬜ Not Started |
 | Phase 12 | Subtitle generation and exports | ⬜ Not Started |
@@ -143,4 +158,4 @@
 
 ## Next Step
 
-Begin Phase 8: Speaker diarization (PyAnnote Audio 3.1 integration, HuggingFace authentication token management, speaker embedding extraction, clustering, speaker turn segmentation, and speaker label alignment with transcript segments).
+Begin Phase 9: Transcript management and editor (in-place segment editing, search and replace, timestamp adjustments, multi-format export [TXT, SRT, VTT, JSON, PDF], and revision history).
