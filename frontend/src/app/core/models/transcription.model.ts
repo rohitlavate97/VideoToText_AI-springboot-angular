@@ -43,8 +43,49 @@ export interface TranscriptSegmentResponse {
   text: string;
   confidence: number;
   language: string;
+  speakerId?: string;
   speakerLabel?: string;
+  speakerDisplayName?: string;
   words?: WordDto[];
+}
+
+export interface UpdateTranscriptSegmentRequest {
+  text?: string;
+  startTime?: number;
+  endTime?: number;
+  speakerId?: string;
+}
+
+export interface TranscriptResponse {
+  jobId: string;
+  videoId: string;
+  videoTitle: string;
+  status: string;
+  language: string;
+  durationSeconds: number;
+  totalSegments: number;
+  totalWords: number;
+  fullText: string;
+  segments: TranscriptSegmentResponse[];
+  completedAt?: string;
+}
+
+export interface TranscriptSearchResponse {
+  query: string;
+  totalMatches: number;
+  matches: TranscriptSegmentResponse[];
+}
+
+export interface TranscriptRevision {
+  id: string;
+  jobId: string;
+  segmentId?: string;
+  userId: string;
+  revisionType: string;
+  fieldChanged: string;
+  oldValue?: string;
+  newValue?: string;
+  createdAt: string;
 }
 
 export interface JobProgressEvent {

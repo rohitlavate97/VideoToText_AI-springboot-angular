@@ -119,11 +119,22 @@
         <!-- Transcript Segment Viewer (When Completed) -->
         <mat-card class="transcript-card" *ngIf="activeJob && activeJob.status === 'COMPLETED'">
           <mat-card-header class="transcript-header">
-            <mat-card-title class="title-with-badge">
-              <mat-icon>notes</mat-icon>
-              Transcript
-              <span class="segment-badge">{{ segments.length }} segments</span>
-            </mat-card-title>
+            <div class="header-content-row">
+              <mat-card-title class="title-with-badge">
+                <mat-icon>notes</mat-icon>
+                Transcript Editor
+                <span class="segment-badge">{{ segments.length }} segments</span>
+              </mat-card-title>
+              <button
+                type="button"
+                class="history-btn"
+                (click)="openRevisionsModal()"
+                title="View edit history"
+              >
+                <mat-icon>history</mat-icon>
+                Revisions
+              </button>
+            </div>
           </mat-card-header>
 
           <div class="transcript-search">
@@ -173,17 +184,76 @@
               <div
                 *ngFor="let seg of filteredSegments"
                 class="segment-item"
-                (click)="seekTo(seg.startTime)"
+                [class.editing]="editingSegmentId === seg.id"
+                (click)="editingSegmentId !== seg.id ? seekTo(seg.startTime) : null"
               >
-                <div class="segment-meta">
-                  <button class="timestamp-pill" (click)="$event.stopPropagation(); seekTo(seg.startTime)">
-                    <mat-icon>play_circle</mat-icon>
-                    {{ formatSeconds(seg.startTime) }} - {{ formatSeconds(seg.endTime) }}
-                  </button>
-                  <span *ngIf="seg.speakerLabel" class="speaker-tag">{{ getSpeakerName(seg.speakerLabel) }}</span>
-                  <span class="confidence-tag">{{ (seg.confidence * 100) | number:'1.0-0' }}%</span>
+                <!-- Display Mode -->
+                <ng-container *ngIf="editingSegmentId !== seg.id">
+                  <div class="segment-meta">
+                    <button class="timestamp-pill" (click)="$event.stopPropagation(); seekTo(seg.startTime)">
+                      <mat-icon>play_circle</mat-icon>
+                      {{ formatSeconds(seg.startTime) }} - {{ formatSeconds(seg.endTime) }}
+                    </button>
+                    <span *ngIf="seg.speakerLabel" class="speaker-tag">{{ getSpeakerName(seg.speakerLabel) }}</span>
+                    <span class="confidence-tag">{{ (seg.confidence * 100) | number:'1.0-0' }}%</span>
+                    <button
+                      type="button"
+                      class="edit-segment-btn"
+                      title="Edit segment"
+                      (click)="startEditingSegment(seg, $event)"
+                    >
+                      <mat-icon>edit</mat-icon>
+                    </button>
+                  </div>
+                  <p class="segment-text">{{ seg.text }}</p>
+                </ng-container>
+
+                <!-- In-place Edit Form -->
+                <div *ngIf="editingSegmentId === seg.id" class="segment-edit-form" (click)="$event.stopPropagation()">
+                  <div class="edit-timing-row">
+                    <div class="time-input-group">
+                      <label>Start (s):</label>
+                      <input type="number" step="0.1" min="0" [(ngModel)]="editStartTime" class="time-input" />
+                    </div>
+                    <div class="time-input-group">
+                      <label>End (s):</label>
+                      <input type="number" step="0.1" min="0" [(ngModel)]="editEndTime" class="time-input" />
+                    </div>
+                    <div class="speaker-select-group" *ngIf="speakers.length > 0">
+                      <label>Speaker:</label>
+                      <select [(ngModel)]="editSpeakerId" class="speaker-dropdown">
+                        <option [ngValue]="null">Unassigned</option>
+                        <option *ngFor="let sp of speakers" [ngValue]="sp.id">{{ sp.displayName }} ({{ sp.speakerLabel }})</option>
+                      </select>
+                    </div>
+                  </div>
+                  <textarea
+                    [(ngModel)]="editText"
+                    class="edit-textarea"
+                    rows="3"
+                    placeholder="Transcript text..."
+                  ></textarea>
+                  <div class="edit-actions">
+                    <button
+                      type="button"
+                      class="btn-cancel"
+                      (click)="cancelEditingSegment($event)"
+                      [disabled]="isSavingSegment"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      class="btn-save"
+                      (click)="saveSegment(seg, $event)"
+                      [disabled]="isSavingSegment"
+                    >
+                      <mat-icon *ngIf="!isSavingSegment">check</mat-icon>
+                      <span *ngIf="isSavingSegment">Saving...</span>
+                      <span *ngIf="!isSavingSegment">Save</span>
+                    </button>
+                  </div>
                 </div>
-                <p class="segment-text">{{ seg.text }}</p>
               </div>
             </div>
 
@@ -230,6 +300,53 @@
             </div>
           </mat-card-content>
         </mat-card>
+      </div>
+    </div>
+  </div>
+
+  <!-- Revisions Audit History Modal -->
+  <div class="modal-backdrop" *ngIf="showRevisionsModal" (click)="closeRevisionsModal()">
+    <div class="modal-card" (click)="$event.stopPropagation()">
+      <div class="modal-header">
+        <h3 class="modal-title">
+          <mat-icon>history</mat-icon>
+          Transcript Revision History
+        </h3>
+        <button type="button" class="close-btn" (click)="closeRevisionsModal()">
+          <mat-icon>close</mat-icon>
+        </button>
+      </div>
+      <div class="modal-body">
+        <div *ngIf="isLoadingRevisions" class="modal-loading">
+          <mat-spinner diameter="32"></mat-spinner>
+          <p>Loading edit history...</p>
+        </div>
+        <div *ngIf="!isLoadingRevisions && revisions.length === 0" class="modal-empty">
+          <mat-icon>history_toggle_off</mat-icon>
+          <p>No edits have been made to this transcript yet.</p>
+        </div>
+        <div *ngIf="!isLoadingRevisions && revisions.length > 0" class="revisions-list">
+          <div *ngFor="let rev of revisions" class="revision-item">
+            <div class="revision-header">
+              <span class="revision-badge">{{ rev.revisionType }}</span>
+              <span class="revision-field">Field: <strong>{{ rev.fieldChanged }}</strong></span>
+              <span class="revision-time">{{ rev.createdAt | date:'short' }}</span>
+            </div>
+            <div class="revision-values">
+              <div class="val-row old-val" *ngIf="rev.oldValue">
+                <span class="val-label">Old:</span>
+                <span class="val-text">{{ rev.oldValue }}</span>
+              </div>
+              <div class="val-row new-val" *ngIf="rev.newValue">
+                <span class="val-label">New:</span>
+                <span class="val-text">{{ rev.newValue }}</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn-close-modal" (click)="closeRevisionsModal()">Close</button>
       </div>
     </div>
   </div>

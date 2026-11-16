@@ -13,6 +13,7 @@ import { MatSnackBar, MatSnackBarModule } from '@angular/material/snack-bar';
 import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
+import { MatSelectModule } from '@angular/material/select';
 import { VideoService } from '../../../core/services/video.service';
 import { TranscriptionService } from '../../../core/services/transcription.service';
 import { SpeakerService } from '../../../core/services/speaker.service';
@@ -21,6 +22,7 @@ import { SpeakerResponse } from '../../../core/models/speaker.model';
 import {
   CreateTranscriptionRequest,
   JobProgressEvent,
+  TranscriptRevision,
   TranscriptSegmentResponse,
   TranscriptionJobResponse
 } from '../../../core/models/transcription.model';
@@ -45,7 +47,8 @@ import {
     MatSnackBarModule,
     MatDialogModule,
     MatFormFieldModule,
-    MatInputModule
+    MatInputModule,
+    MatSelectModule
   ],
   templateUrl: './video-detail.component.html',
   styleUrls: ['./video-detail.component.scss']
@@ -68,6 +71,19 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
   progressEvent: JobProgressEvent | null = null;
   searchQuery = '';
   selectedSpeakerFilter: string | null = null;
+
+  // Segment Editing State
+  editingSegmentId: string | null = null;
+  editText = '';
+  editStartTime = 0;
+  editEndTime = 0;
+  editSpeakerId: string | null = null;
+  isSavingSegment = false;
+
+  // Revisions Modal State
+  showRevisionsModal = false;
+  revisions: TranscriptRevision[] = [];
+  isLoadingRevisions = false;
 
   isLoading = true;
   isLoadingTranscript = false;
@@ -202,6 +218,90 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
     if (!label) return 'Unknown Speaker';
     const found = this.speakers.find(s => s.speakerLabel === label);
     return found ? found.displayName : label;
+  }
+
+  startEditingSegment(seg: TranscriptSegmentResponse, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.editingSegmentId = seg.id;
+    this.editText = seg.text;
+    this.editStartTime = Number(seg.startTime.toFixed(2));
+    this.editEndTime = Number(seg.endTime.toFixed(2));
+    this.editSpeakerId = seg.speakerId || null;
+  }
+
+  cancelEditingSegment(event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    this.editingSegmentId = null;
+  }
+
+  saveSegment(seg: TranscriptSegmentResponse, event?: Event): void {
+    if (event) {
+      event.stopPropagation();
+    }
+    if (!this.activeJob) return;
+
+    if (this.editStartTime < 0 || this.editEndTime <= this.editStartTime) {
+      this.snackBar.open('Invalid timestamps: start time must be non-negative and less than end time', 'Close', { duration: 3500 });
+      return;
+    }
+
+    if (!this.editText.trim()) {
+      this.snackBar.open('Transcript text cannot be empty', 'Close', { duration: 3000 });
+      return;
+    }
+
+    this.isSavingSegment = true;
+    this.transcriptionService.updateSegment(this.activeJob.id, seg.id, {
+      text: this.editText.trim(),
+      startTime: this.editStartTime,
+      endTime: this.editEndTime,
+      speakerId: this.editSpeakerId || undefined
+    }).subscribe({
+      next: (res) => {
+        this.isSavingSegment = false;
+        if (res.success && res.data) {
+          seg.text = res.data.text;
+          seg.startTime = res.data.startTime;
+          seg.endTime = res.data.endTime;
+          seg.speakerId = res.data.speakerId;
+          seg.speakerLabel = res.data.speakerLabel;
+          seg.speakerDisplayName = res.data.speakerDisplayName;
+          this.editingSegmentId = null;
+          this.snackBar.open('Segment updated successfully', 'OK', { duration: 3000 });
+        }
+      },
+      error: (err) => {
+        this.isSavingSegment = false;
+        const msg = err?.error?.error?.message || 'Failed to update segment';
+        this.snackBar.open(msg, 'Close', { duration: 4000 });
+      }
+    });
+  }
+
+  openRevisionsModal(): void {
+    if (!this.activeJob) return;
+    this.showRevisionsModal = true;
+    this.isLoadingRevisions = true;
+    this.transcriptionService.getRevisions(this.activeJob.id).subscribe({
+      next: (res) => {
+        this.isLoadingRevisions = false;
+        if (res.success && res.data) {
+          this.revisions = res.data;
+        }
+      },
+      error: () => {
+        this.isLoadingRevisions = false;
+        this.snackBar.open('Failed to load revision history', 'Close', { duration: 3000 });
+      }
+    });
+  }
+
+  closeRevisionsModal(): void {
+    this.showRevisionsModal = false;
   }
 
   openTranscriptionDialog(): void {

@@ -1,12 +1,16 @@
 import { Injectable, inject, NgZone } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { Observable } from 'rxjs';
-import { ApiResponse } from '../models/api-response.model';
+import { ApiResponse, PageResponse } from '../models/api-response.model';
 import {
   CreateTranscriptionRequest,
   JobProgressEvent,
+  TranscriptResponse,
+  TranscriptRevision,
+  TranscriptSearchResponse,
   TranscriptSegmentResponse,
-  TranscriptionJobResponse
+  TranscriptionJobResponse,
+  UpdateTranscriptSegmentRequest
 } from '../models/transcription.model';
 
 @Injectable({
@@ -36,6 +40,40 @@ export class TranscriptionService {
 
   getJobSegments(jobId: string): Observable<ApiResponse<TranscriptSegmentResponse[]>> {
     return this.http.get<ApiResponse<TranscriptSegmentResponse[]>>(`${this.API_BASE}/${jobId}/segments`);
+  }
+
+  getJobSegmentsPaginated(jobId: string, page: number = 0, size: number = 50): Observable<ApiResponse<PageResponse<TranscriptSegmentResponse>>> {
+    return this.http.get<ApiResponse<PageResponse<TranscriptSegmentResponse>>>(
+      `${this.API_BASE}/${jobId}/segments?page=${page}&size=${size}`
+    );
+  }
+
+  getTranscript(jobId: string): Observable<ApiResponse<TranscriptResponse>> {
+    return this.http.get<ApiResponse<TranscriptResponse>>(`${this.API_BASE}/${jobId}/transcript`);
+  }
+
+  updateSegment(jobId: string, segmentId: string, request: UpdateTranscriptSegmentRequest): Observable<ApiResponse<TranscriptSegmentResponse>> {
+    return this.http.put<ApiResponse<TranscriptSegmentResponse>>(
+      `${this.API_BASE}/${jobId}/segments/${segmentId}`,
+      request
+    );
+  }
+
+  reassignSpeaker(jobId: string, segmentId: string, speakerId: string): Observable<ApiResponse<TranscriptSegmentResponse>> {
+    return this.http.put<ApiResponse<TranscriptSegmentResponse>>(
+      `${this.API_BASE}/${jobId}/segments/${segmentId}/speaker`,
+      { speakerId }
+    );
+  }
+
+  searchTranscript(jobId: string, query: string): Observable<ApiResponse<TranscriptSearchResponse>> {
+    return this.http.get<ApiResponse<TranscriptSearchResponse>>(
+      `${this.API_BASE}/${jobId}/search?query=${encodeURIComponent(query)}`
+    );
+  }
+
+  getRevisions(jobId: string): Observable<ApiResponse<TranscriptRevision[]>> {
+    return this.http.get<ApiResponse<TranscriptRevision[]>>(`${this.API_BASE}/${jobId}/revisions`);
   }
 
   cancelJob(jobId: string): Observable<ApiResponse<TranscriptionJobResponse>> {
