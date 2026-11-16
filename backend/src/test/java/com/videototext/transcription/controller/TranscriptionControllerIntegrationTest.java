@@ -2,10 +2,14 @@ package com.videototext.transcription.controller;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.videototext.auth.dto.RegisterRequest;
+import com.videototext.speaker.entity.Speaker;
+import com.videototext.speaker.repository.SpeakerRepository;
 import com.videototext.storage.service.StorageService;
 import com.videototext.transcription.dto.CreateTranscriptionRequest;
 import com.videototext.transcription.dto.JobProgressEventDto;
+import com.videototext.transcription.dto.ReassignSpeakerRequest;
 import com.videototext.transcription.dto.TranscriptionResultPayload;
+import com.videototext.transcription.dto.UpdateTranscriptSegmentRequest;
 import com.videototext.transcription.entity.TranscriptionJob;
 import com.videototext.transcription.entity.TranscriptSegment;
 import com.videototext.transcription.repository.TranscriptionJobRepository;
@@ -40,6 +44,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -69,6 +74,9 @@ class TranscriptionControllerIntegrationTest {
 
     @Autowired
     private TranscriptRevisionRepository revisionRepository;
+
+    @Autowired
+    private SpeakerRepository speakerRepository;
 
     @Autowired
     private TranscriptionEventConsumer eventConsumer;
@@ -371,5 +379,144 @@ class TranscriptionControllerIntegrationTest {
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true))
                 .andExpect(jsonPath("$.data", hasSize(0)));
+    }
+
+    @Test
+    @Order(14)
+    void updateSegment_TextAndTimestamps_Success() throws Exception {
+        List<TranscriptSegment> segments = segmentRepository.findByJobIdOrderBySegmentIndexAsc(createdJobId);
+        TranscriptSegment seg0 = segments.get(0);
+
+        UpdateTranscriptSegmentRequest request = UpdateTranscriptSegmentRequest.builder()
+                .text("Updated speech recognition introduction.")
+                .startTime(0.2f)
+                .endTime(2.8f)
+                .build();
+
+        mockMvc.perform(put("/api/v1/transcriptions/" + createdJobId + "/segments/" + seg0.getId())
+                        .header("Authorization", "Bearer " + tokenUser1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.text").value("Updated speech recognition introduction."))
+                .andExpect(jsonPath("$.data.startTime").value(0.2))
+                .andExpect(jsonPath("$.data.endTime").value(2.8));
+    }
+
+    @Test
+    @Order(15)
+    void updateSegment_InvalidTimestamps_BadRequest() throws Exception {
+        List<TranscriptSegment> segments = segmentRepository.findByJobIdOrderBySegmentIndexAsc(createdJobId);
+        TranscriptSegment seg0 = segments.get(0);
+
+        UpdateTranscriptSegmentRequest request = UpdateTranscriptSegmentRequest.builder()
+                .startTime(10.0f)
+                .endTime(5.0f) // Invalid: endTime < startTime
+                .build();
+
+        mockMvc.perform(put("/api/v1/transcriptions/" + createdJobId + "/segments/" + seg0.getId())
+                        .header("Authorization", "Bearer " + tokenUser1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isBadRequest());
+    }
+
+    @Test
+    @Order(16)
+    void reassignSpeaker_Success() throws Exception {
+        TranscriptionJob job = jobRepository.findById(createdJobId).orElseThrow();
+        Speaker speaker = Speaker.builder()
+                .job(job)
+                .speakerLabel("SPEAKER_01")
+                .displayName("Dr. Aris")
+                .segmentCount(1)
+                .build();
+        speaker = speakerRepository.save(speaker);
+
+        List<TranscriptSegment> segments = segmentRepository.findByJobIdOrderBySegmentIndexAsc(createdJobId);
+        TranscriptSegment seg1 = segments.get(1);
+
+        ReassignSpeakerRequest request = ReassignSpeakerRequest.builder()
+                .speakerId(speaker.getId())
+                .build();
+
+        mockMvc.perform(put("/api/v1/transcriptions/" + createdJobId + "/segments/" + seg1.getId() + "/speaker")
+                        .header("Authorization", "Bearer " + tokenUser1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.speakerId").value(speaker.getId().toString()))
+                .andExpect(jsonPath("$.data.speakerDisplayName").value("Dr. Aris"));
+    }
+
+    @Test
+    @Order(17)
+    void reassignSpeaker_NonExistentSpeaker_NotFound() throws Exception {
+        List<TranscriptSegment> segments = segmentRepository.findByJobIdOrderBySegmentIndexAsc(createdJobId);
+        TranscriptSegment seg1 = segments.get(1);
+
+        ReassignSpeakerRequest request = ReassignSpeakerRequest.builder()
+                .speakerId(UUID.randomUUID())
+                .build();
+
+        mockMvc.perform(put("/api/v1/transcriptions/" + createdJobId + "/segments/" + seg1.getId() + "/speaker")
+                        .header("Authorization", "Bearer " + tokenUser1)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isNotFound());
+    }
+
+    @Test
+    @Order(18)
+    void searchTranscript_Success() throws Exception {
+        mockMvc.perform(get("/api/v1/transcriptions/" + createdJobId + "/search")
+                        .param("query", "speech")
+                        .header("Authorization", "Bearer " + tokenUser1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.query").value("speech"))
+                .andExpect(jsonPath("$.data.totalMatches", greaterThanOrEqualTo(1)))
+                .andExpect(jsonPath("$.data.matches[0].text", containsString("speech")));
+    }
+
+    @Test
+    @Order(19)
+    void searchTranscript_NoMatch_ReturnsEmpty() throws Exception {
+        mockMvc.perform(get("/api/v1/transcriptions/" + createdJobId + "/search")
+                        .param("query", "nonexistentquerywordxyz")
+                        .header("Authorization", "Bearer " + tokenUser1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data.totalMatches").value(0))
+                .andExpect(jsonPath("$.data.matches", hasSize(0)));
+    }
+
+    @Test
+    @Order(20)
+    void getRevisions_AfterEdits_ReturnsAuditHistory() throws Exception {
+        mockMvc.perform(get("/api/v1/transcriptions/" + createdJobId + "/revisions")
+                        .header("Authorization", "Bearer " + tokenUser1))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.success").value(true))
+                .andExpect(jsonPath("$.data", hasSize(greaterThanOrEqualTo(3))));
+    }
+
+    @Test
+    @Order(21)
+    void updateSegment_UnauthorizedUser_Forbidden() throws Exception {
+        List<TranscriptSegment> segments = segmentRepository.findByJobIdOrderBySegmentIndexAsc(createdJobId);
+        TranscriptSegment seg0 = segments.get(0);
+
+        UpdateTranscriptSegmentRequest request = UpdateTranscriptSegmentRequest.builder()
+                .text("Hacker edit attempt.")
+                .build();
+
+        mockMvc.perform(put("/api/v1/transcriptions/" + createdJobId + "/segments/" + seg0.getId())
+                        .header("Authorization", "Bearer " + tokenUser2)
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(request)))
+                .andExpect(status().isForbidden());
     }
 }
