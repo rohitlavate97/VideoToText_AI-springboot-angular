@@ -75,6 +75,18 @@
 
 ---
 
+## Phase 5 — Python AI Worker Foundation
+
+| # | Functionality | Status | Commit | Notes |
+|---|---------------|--------|--------|-------|
+| 5.1 | Python Worker Initialization & Architecture | ✅ Done | `a30e8d0` | Modular package structure, settings, correlation logging, and Pydantic schemas |
+| 5.2 | RabbitMQ Consumer & Event Publisher | ✅ Done | `53b3db2` | Auto-reconnecting Pika client, topology setup, persistent event/result publishing |
+| 5.3 | Job Processing Lifecycle | ✅ Done | `9c675dd` | `BaseJobProcessor` & `DefaultJobProcessor` with multi-stage progress dispatching |
+| 5.4 | Retry Handler, Idempotency & Health Check | ✅ Done | `bba543a` | Redis idempotency guard, exponential backoff (max 3 retries), DLQ escalation, FastAPI health APIs |
+| 5.5 | Unit & Lifecycle Test Suite | ✅ Done | `d11df2f` | 19/19 pytest tests passing (schemas, idempotency, retry, consumer lifecycle, health) |
+
+---
+
 ## Phase Checklist
 
 | Phase | Description | Status |
@@ -84,8 +96,8 @@
 | **Phase 2** | Backend foundation | ✅ Completed |
 | **Phase 3** | Authentication and user management | ✅ Completed |
 | **Phase 4** | Video upload and management | ✅ Completed |
-| **Phase 5** | Python AI worker foundation | ⬜ Next |
-| Phase 6 | ASR engine and transcription | ⬜ Not Started |
+| **Phase 5** | Python AI worker foundation | ✅ Completed |
+| **Phase 6** | ASR engine and transcription | ⬜ Next |
 | Phase 7 | Transcription orchestration and performance optimization | ⬜ Not Started |
 | Phase 8 | Speaker diarization | ⬜ Not Started |
 | Phase 9 | Transcript management and editor | ⬜ Not Started |
@@ -104,4 +116,4 @@
 
 ## Next Step
 
-Begin Phase 5: Python AI worker foundation (Python 3.11 virtual environment, RabbitMQ worker consumer, Pydantic job schema, consumer acknowledgment/nack, retry mechanism, idempotency handling, and health check API).
+Begin Phase 6: ASR engine and transcription (faster-whisper integration, FFmpeg 16kHz mono audio extraction, Silero-VAD chunking, language auto-detection and manual specification, word-level timestamps).

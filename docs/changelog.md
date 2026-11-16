@@ -48,3 +48,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Responsive video library with status filters, search, specs display, and pagination (`VideoLibraryComponent`).
     - Video detail page with HTML5 `<video>` preview player, technical metadata breakdown, and transcription CTA (`VideoDetailComponent`).
     - Configured lazy routes protected by `authGuard`.
+- **Phase 5**:
+  - Python 3.12 AI Worker environment configured with virtual environment (`.venv`) and pip dependencies.
+  - Modular worker architecture created (`consumers`, `processors`, `providers`, `diarization`, `translation`, `summarization`, `subtitles`, `storage`, `messaging`, `models`, `config`, `health`).
+  - Centralized Pydantic configuration (`WorkerSettings`) and structured correlation logging (`setup_logging`).
+  - Full message schemas for job requests (`TranscriptionJobRequest`), progress events (`ProcessingEvent`), and results (`TranscriptionJobResult`).
+  - Auto-reconnecting RabbitMQ client (`RabbitMQClient`) with topology declarations for exchanges, queues, and DLQ.
+  - Persistent event and result publishing (`EventPublisher`).
+  - Multi-stage pipeline processing lifecycle (`BaseJobProcessor`, `DefaultJobProcessor`).
+  - Distributed idempotency management (`IdempotencyManager`) backed by Redis to prevent duplicate compute runs.
+  - Exponential backoff retry handler (`RetryHandler`) with max retry threshold (3 retries) and dead-letter routing to `transcription.dlq`.
+  - RabbitMQ worker consumer (`TranscriptionConsumer`) with manual message acknowledgments (`basic_ack`, `basic_nack`).
+  - FastAPI health check & metrics server with `/health` liveness and `/health/detailed` readiness endpoints.
+  - Complete pytest test suite (19/19 tests passing).
