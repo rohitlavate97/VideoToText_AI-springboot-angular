@@ -61,3 +61,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - RabbitMQ worker consumer (`TranscriptionConsumer`) with manual message acknowledgments (`basic_ack`, `basic_nack`).
   - FastAPI health check & metrics server with `/health` liveness and `/health/detailed` readiness endpoints.
   - Complete pytest test suite (19/19 tests passing).
+- **Phase 6**:
+  - Unified ASR provider abstraction (`ASRProvider`) with schemas for `WordTimestamp`, `TranscriptionSegment`, and `TranscriptionOutput`.
+  - `faster-whisper` integration powered by CTranslate2 with model selection (`tiny` to `large-v3`) and `MockASRProvider` for deterministic testing.
+  - `DeviceDetector` probing CUDA acceleration, VRAM allocation, and precision selection (`float16`, `int8_float16`) with automatic `int8` CPU fallback.
+  - `ASRProviderFactory` instantiating optimal providers based on runtime telemetry.
+  - `AudioExtractor` extracting 16kHz mono 16-bit PCM WAV audio using FFmpeg with resilient fallback.
+  - `VADChunker` chunking speech up to 10 minutes (600s) at silence boundaries.
+  - `VideoTranscriptionProcessor` executing end-to-end multi-stage pipeline with global timeline offset calculation and progress event dispatching.
+  - `ASRBenchmarkSuite` profiling 10m, 30m, 1h, and 4h audio workloads with Real-Time Factor (RTF) and memory telemetry.
+  - Full test suite passing (30/30 pytest tests passing).

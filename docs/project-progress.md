@@ -87,6 +87,20 @@
 
 ---
 
+## Phase 6 — ASR Engine and Transcription
+
+| # | Functionality | Status | Commit | Notes |
+|---|---------------|--------|--------|-------|
+| 6.1 | ASR Provider Abstraction | ✅ Done | `c81d5d8` | `ASRProvider` ABC, `WordTimestamp`, `TranscriptionSegment`, `TranscriptionOutput` schemas |
+| 6.2 | faster-whisper Integration | ✅ Done | `6e67b89` | `FasterWhisperProvider` with CTranslate2 and `MockASRProvider` for deterministic testing |
+| 6.3 | GPU Detection & CPU Fallback | ✅ Done | `8a1e87f` | `DeviceDetector` probing CUDA/nvidia-smi, automatic `int8` CPU fallback, `ASRProviderFactory` |
+| 6.4 | Audio Extraction & VAD Chunking | ✅ Done | `6402c30` | `AudioExtractor` (16kHz mono WAV via FFmpeg) & `VADChunker` (up to 10m / 600s chunks) |
+| 6.5 | Transcription Pipeline & Timestamps | ✅ Done | `6402c30` | `VideoTranscriptionProcessor` with word alignments and multi-stage progress dispatching |
+| 6.6 | Provider & Pipeline Tests | ✅ Done | `2e473a2` | 8 provider/chunking tests and full pipeline execution test |
+| 6.7 | Multi-Duration Benchmark Suite | ✅ Done | `3021b21` | `ASRBenchmarkSuite` profiling 10m, 30m, 1h, and 4h (24 chunks) with RTF and memory telemetry |
+
+---
+
 ## Phase Checklist
 
 | Phase | Description | Status |
@@ -97,8 +111,8 @@
 | **Phase 3** | Authentication and user management | ✅ Completed |
 | **Phase 4** | Video upload and management | ✅ Completed |
 | **Phase 5** | Python AI worker foundation | ✅ Completed |
-| **Phase 6** | ASR engine and transcription | ⬜ Next |
-| Phase 7 | Transcription orchestration and performance optimization | ⬜ Not Started |
+| **Phase 6** | ASR engine and transcription | ✅ Completed |
+| **Phase 7** | Transcription orchestration and performance optimization | ⬜ Next |
 | Phase 8 | Speaker diarization | ⬜ Not Started |
 | Phase 9 | Transcript management and editor | ⬜ Not Started |
 | Phase 10 | Translation | ⬜ Not Started |
@@ -116,4 +130,4 @@
 
 ## Next Step
 
-Begin Phase 6: ASR engine and transcription (faster-whisper integration, FFmpeg 16kHz mono audio extraction, Silero-VAD chunking, language auto-detection and manual specification, word-level timestamps).
+Begin Phase 7: Transcription orchestration and performance optimization (Spring Boot job submission, DB persistence for segments/words, parallel chunk dispatching, progress tracking via RabbitMQ event consumer, SSE event stream).
