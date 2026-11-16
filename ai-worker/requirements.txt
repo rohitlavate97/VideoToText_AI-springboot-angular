@@ -25,7 +25,5 @@ pytest==8.3.4
 pytest-asyncio==0.25.3
 pytest-mock==3.14.0
 
-# AI / Audio dependencies (for Phase 5 & 6)
-# Note: PyTorch & faster-whisper will be resolved with CUDA/CPU options in Docker
-# faster-whisper>=1.0.3
-# torch>=2.2.0
+# AI / Audio dependencies
+faster-whisper==1.2.1
