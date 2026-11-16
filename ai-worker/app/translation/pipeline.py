@@ -1,7 +1,7 @@
 import logging
 from typing import Callable, Dict, List, Optional
 from uuid import UUID
-from app.providers.base import TranscriptionSegment
+from app.providers.base_provider import TranscriptionSegment
 from app.translation.engine import TranslationEngineFactory
 from app.translation.models import (
     SupportedLanguage,
@@ -82,9 +82,10 @@ class TranslationPipeline:
                 quality_scores.append(report.estimated_quality_score)
 
                 speaker = getattr(seg, "speaker", None) or getattr(seg, "speaker_label", None)
+                seg_idx = getattr(seg, "segment_index", getattr(seg, "id", 0))
                 translated_segments.append(
                     TranslatedSegment(
-                        segment_index=seg.segment_index,
+                        segment_index=seg_idx,
                         start_time=seg.start_time,
                         end_time=seg.end_time,
                         speaker_label=speaker,
