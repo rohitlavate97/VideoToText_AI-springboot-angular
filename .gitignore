@@ -1,0 +1,71 @@
+# ===== Java / Maven =====
+backend/target/
+*.class
+*.jar
+*.war
+*.ear
+*.log
+*.iml
+.idea/
+*.ipr
+*.iws
+
+# ===== Spring Boot =====
+backend/src/main/resources/application-local.yml
+backend/src/main/resources/application-prod.yml
+
+# ===== Angular =====
+frontend/node_modules/
+frontend/dist/
+frontend/.angular/
+frontend/.sass-cache/
+frontend/coverage/
+frontend/e2e/
+frontend/tmp/
+frontend/.vscode/
+
+# ===== Python =====
+ai-worker/venv/
+ai-worker/.venv/
+ai-worker/__pycache__/
+ai-worker/**/__pycache__/
+ai-worker/*.pyc
+ai-worker/.pytest_cache/
+ai-worker/.mypy_cache/
+ai-worker/*.egg-info/
+ai-worker/dist/
+ai-worker/build/
+
+# ===== Environment =====
+.env
+.env.local
+.env.production
+*.env
+
+# ===== OS =====
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# ===== IDE =====
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+.project
+.classpath
+.settings/
+
+# ===== Docker =====
+docker-compose.override.yml
+
+# ===== Storage =====
+data/
+uploads/
+storage/
+minio-data/
+
+# ===== Logs =====
+logs/
+*.log
