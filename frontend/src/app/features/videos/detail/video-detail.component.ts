@@ -15,7 +15,9 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { VideoService } from '../../../core/services/video.service';
 import { TranscriptionService } from '../../../core/services/transcription.service';
+import { SpeakerService } from '../../../core/services/speaker.service';
 import { VideoResponse } from '../../../core/models/video.model';
+import { SpeakerResponse } from '../../../core/models/speaker.model';
 import {
   CreateTranscriptionRequest,
   JobProgressEvent,
@@ -55,14 +57,17 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
   private readonly router = inject(Router);
   private readonly videoService = inject(VideoService);
   private readonly transcriptionService = inject(TranscriptionService);
+  private readonly speakerService = inject(SpeakerService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
   video: VideoResponse | null = null;
   activeJob: TranscriptionJobResponse | null = null;
   segments: TranscriptSegmentResponse[] = [];
+  speakers: SpeakerResponse[] = [];
   progressEvent: JobProgressEvent | null = null;
   searchQuery = '';
+  selectedSpeakerFilter: string | null = null;
 
   isLoading = true;
   isLoadingTranscript = false;
@@ -112,6 +117,7 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
             this.listenToProgress(this.activeJob.id);
           } else if (this.activeJob.status === 'COMPLETED') {
             this.loadSegments(this.activeJob.id);
+            this.loadSpeakers(this.activeJob.id);
           }
         }
       },
@@ -134,6 +140,7 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
           if (evt.stage === 'COMPLETED') {
             this.activeJob.status = 'COMPLETED';
             this.loadSegments(jobId);
+            this.loadSpeakers(jobId);
           }
         }
       },
@@ -156,6 +163,45 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
         this.isLoadingTranscript = false;
       }
     });
+  }
+
+  loadSpeakers(jobId: string): void {
+    this.speakerService.getSpeakers(jobId).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.speakers = res.data;
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  renameSpeaker(speaker: SpeakerResponse): void {
+    const currentName = speaker.displayName || speaker.speakerLabel;
+    const newName = prompt(`Rename ${currentName}:`, currentName);
+    if (newName && newName.trim() && newName.trim() !== currentName) {
+      this.speakerService.updateSpeaker(speaker.jobId, speaker.id, { displayName: newName.trim() }).subscribe({
+        next: (res) => {
+          if (res.success && res.data) {
+            speaker.displayName = res.data.displayName;
+            this.snackBar.open(`Renamed to "${res.data.displayName}"`, 'OK', { duration: 3000 });
+          }
+        },
+        error: () => {
+          this.snackBar.open('Failed to update speaker name', 'Close', { duration: 3000 });
+        }
+      });
+    }
+  }
+
+  filterBySpeaker(label: string | null): void {
+    this.selectedSpeakerFilter = this.selectedSpeakerFilter === label ? null : label;
+  }
+
+  getSpeakerName(label?: string): string {
+    if (!label) return 'Unknown Speaker';
+    const found = this.speakers.find(s => s.speakerLabel === label);
+    return found ? found.displayName : label;
   }
 
   openTranscriptionDialog(): void {
@@ -182,6 +228,8 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
         if (res.success && res.data) {
           this.activeJob = res.data;
           this.segments = [];
+          this.speakers = [];
+          this.selectedSpeakerFilter = null;
           this.snackBar.open('Transcription job queued successfully!', 'OK', { duration: 3000 });
           this.listenToProgress(this.activeJob.id);
         }
@@ -220,11 +268,15 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
   }
 
   get filteredSegments(): TranscriptSegmentResponse[] {
-    if (!this.searchQuery.trim()) {
-      return this.segments;
+    let result = this.segments;
+    if (this.selectedSpeakerFilter) {
+      result = result.filter(s => s.speakerLabel === this.selectedSpeakerFilter);
     }
-    const q = this.searchQuery.toLowerCase();
-    return this.segments.filter(s => s.text.toLowerCase().includes(q));
+    if (this.searchQuery.trim()) {
+      const q = this.searchQuery.toLowerCase();
+      result = result.filter(s => s.text.toLowerCase().includes(q));
+    }
+    return result;
   }
 
   deleteVideo(): void {

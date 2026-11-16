@@ -136,6 +136,38 @@
             </mat-form-field>
           </div>
 
+          <!-- Speaker Diarization Filter & Management Bar -->
+          <div class="speaker-filter-bar" *ngIf="speakers.length > 0">
+            <span class="speaker-filter-label">Speakers:</span>
+            <div class="speaker-chips">
+              <button
+                type="button"
+                class="speaker-chip"
+                [class.active]="selectedSpeakerFilter === null"
+                (click)="filterBySpeaker(null)"
+              >
+                All ({{ segments.length }})
+              </button>
+              <div
+                *ngFor="let s of speakers"
+                class="speaker-chip"
+                [class.active]="selectedSpeakerFilter === s.speakerLabel"
+                (click)="filterBySpeaker(s.speakerLabel)"
+              >
+                <span>{{ s.displayName }}</span>
+                <span class="count">({{ s.segmentCount }})</span>
+                <button
+                  type="button"
+                  class="rename-btn"
+                  title="Rename speaker"
+                  (click)="$event.stopPropagation(); renameSpeaker(s)"
+                >
+                  <mat-icon>edit</mat-icon>
+                </button>
+              </div>
+            </div>
+          </div>
+
           <mat-card-content class="segments-container">
             <div class="segments-list" *ngIf="filteredSegments.length > 0">
               <div
@@ -148,7 +180,7 @@
                     <mat-icon>play_circle</mat-icon>
                     {{ formatSeconds(seg.startTime) }} - {{ formatSeconds(seg.endTime) }}
                   </button>
-                  <span *ngIf="seg.speakerLabel" class="speaker-tag">{{ seg.speakerLabel }}</span>
+                  <span *ngIf="seg.speakerLabel" class="speaker-tag">{{ getSpeakerName(seg.speakerLabel) }}</span>
                   <span class="confidence-tag">{{ (seg.confidence * 100) | number:'1.0-0' }}%</span>
                 </div>
                 <p class="segment-text">{{ seg.text }}</p>
