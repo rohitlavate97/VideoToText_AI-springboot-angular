@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Phase** | Phase 2 — Backend Foundation |
+| **Current Phase** | Phase 3 — Authentication and User Management |
 | **Phase Status** | Completed |
 | **Last Updated** | 2026-11-16 |
 
@@ -53,6 +53,17 @@
 
 ---
 
+## Phase 3 — Authentication and User Management
+
+| # | Functionality | Status | Commit | Notes |
+|---|---------------|--------|--------|-------|
+| 3.1 | User, Role, and UserPreference entities & repositories | ✅ Done | `28ba291` | JPA entities extending BaseEntity, EAGER roles mapping, UserRepository & RoleRepository |
+| 3.2 | JWT Token Provider & Security filter chain | ✅ Done | `b87ac12` | JJWT 0.12.x provider (15min access, 7d refresh), JwtAuthenticationFilter, CustomUserDetails |
+| 3.3 | Auth & User services, REST endpoints, and integration tests | ✅ Done | `aaba1d5` | Registration, login, refresh token rotation with Redis revocation, profile APIs, 19/19 tests passing |
+| 3.4 | Frontend Authentication UI & Navigation | ✅ Done | `3ee30e4` | Login & Register pages (Material), Dashboard, Profile & Settings, AuthInterceptor, AuthGuard |
+
+---
+
 ## Phase Checklist
 
 | Phase | Description | Status |
@@ -60,8 +71,8 @@
 | **Phase 0** | Product requirements and architecture | ✅ Completed |
 | **Phase 1** | Development environment and repository setup | ✅ Completed |
 | **Phase 2** | Backend foundation | ✅ Completed |
-| **Phase 3** | Authentication and user management | ⬜ Next |
-| Phase 4 | Video upload and management | ⬜ Not Started |
+| **Phase 3** | Authentication and user management | ✅ Completed |
+| **Phase 4** | Video upload and management | ⬜ Next |
 | Phase 5 | Python AI worker foundation | ⬜ Not Started |
 | Phase 6 | ASR engine and transcription | ⬜ Not Started |
 | Phase 7 | Transcription orchestration and performance optimization | ⬜ Not Started |
@@ -82,4 +93,4 @@
 
 ## Next Step
 
-Begin Phase 3: Authentication and user management (User entity, Role entity, UserPreferences, UserRepository, RoleRepository, JwtTokenProvider, AuthService, UserDetailsService, AuthController, registration, login, refresh tokens, and Angular auth pages/services).
+Begin Phase 4: Video upload and management (video upload API, multipart uploads, resumable uploads, FFprobe metadata extraction, 240-minute duration limit enforcement, S3/MinIO object storage integration, video listing and deletion, and drag-and-drop frontend UI).
