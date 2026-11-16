@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Phase** | Phase 1 — Development Environment and Repository Setup |
+| **Current Phase** | Phase 2 — Backend Foundation |
 | **Phase Status** | Completed |
 | **Last Updated** | 2026-11-16 |
 
@@ -31,12 +31,25 @@
 
 | # | Functionality | Status | Commit | Notes |
 |---|---------------|--------|--------|-------|
-| 1.1 | Project root structure & git configuration | ✅ Done | Pending | .gitignore, .env.example, README.md |
-| 1.2 | Spring Boot 3.5.x backend initialization | ✅ Done | Pending | Java 21, Maven 3.9, pom.xml, Spring Boot test passing |
-| 1.3 | Angular 17 frontend initialization | ✅ Done | Pending | Standalone components, SCSS, Angular Material 17 |
-| 1.4 | Python 3.11 AI worker initialization | ✅ Done | Pending | Pydantic settings, worker structure, Dockerfile |
-| 1.5 | Docker development environment | ✅ Done | Pending | docker-compose.yml (PostgreSQL, RabbitMQ, Redis, MinIO) |
-| 1.6 | Infrastructure configurations | ✅ Done | Pending | Nginx reverse proxy configuration |
+| 1.1 | Project root structure & git configuration | ✅ Done | `8779677` | .gitignore, .env.example, README.md |
+| 1.2 | Spring Boot 3.5.x backend initialization | ✅ Done | `e96edbe` | Java 21, Maven 3.9, pom.xml, Spring Boot test passing |
+| 1.3 | Angular 17 frontend initialization | ✅ Done | `8c92c78` | Standalone components, SCSS, Angular Material 17 |
+| 1.4 | Python 3.11 AI worker initialization | ✅ Done | `5e3d458` | Pydantic settings, worker structure, Dockerfile |
+| 1.5 | Docker development environment | ✅ Done | `7706b36` | docker-compose.yml (PostgreSQL, RabbitMQ, Redis, MinIO) |
+| 1.6 | Infrastructure configurations | ✅ Done | `7706b36` | Nginx reverse proxy configuration |
+
+---
+
+## Phase 2 — Backend Foundation
+
+| # | Functionality | Status | Commit | Notes |
+|---|---------------|--------|--------|-------|
+| 2.1 | Package structure, DTOs & Global Exception Handling | ✅ Done | `c24f8e6` | ApiResponse, ErrorResponse, PageResponse, BaseEntity, GlobalExceptionHandler + Unit Tests |
+| 2.2 | JPA Auditing & Flyway base migrations V1–V15 | ✅ Done | `cae4570` | V1 to V15 migrations matching database ERD (15 tables, indexes, role seeding) |
+| 2.3 | RabbitMQ configuration & serialization | ✅ Done | `cf88fa8` | Topic & Direct exchanges, durable queues, DLQ dead lettering, Jackson JSON converter |
+| 2.4 | Redis caching & serialization | ✅ Done | `38948b3` | RedisTemplate with generic JSON serializer, RedisCacheManager with TTL |
+| 2.5 | OpenAPI / Swagger & Spring Security filter chain | ✅ Done | `8944fdc` | Swagger UI configuration, Bearer JWT scheme, CORS mappings, stateless filter chain |
+| 2.6 | Health check & system runtime APIs | ✅ Done | `3f5aae5` | /api/v1/health & /api/v1/health/system endpoints with MockMvc integration tests |
 
 ---
 
@@ -46,8 +59,8 @@
 |-------|-------------|--------|
 | **Phase 0** | Product requirements and architecture | ✅ Completed |
 | **Phase 1** | Development environment and repository setup | ✅ Completed |
-| **Phase 2** | Backend foundation | ⬜ Next |
-| Phase 3 | Authentication and user management | ⬜ Not Started |
+| **Phase 2** | Backend foundation | ✅ Completed |
+| **Phase 3** | Authentication and user management | ⬜ Next |
 | Phase 4 | Video upload and management | ⬜ Not Started |
 | Phase 5 | Python AI worker foundation | ⬜ Not Started |
 | Phase 6 | ASR engine and transcription | ⬜ Not Started |
@@ -67,12 +80,6 @@
 
 ---
 
-## Known Issues
-
-_None identified yet._
-
----
-
 ## Next Step
 
-Begin Phase 2: Backend foundation (package structure, JPA/Flyway migrations, Redis, RabbitMQ config, validation, global exception handling, health checks).
+Begin Phase 3: Authentication and user management (User entity, Role entity, UserPreferences, UserRepository, RoleRepository, JwtTokenProvider, AuthService, UserDetailsService, AuthController, registration, login, refresh tokens, and Angular auth pages/services).
