@@ -147,6 +147,70 @@
             </mat-form-field>
           </div>
 
+          <!-- Multilingual Translation Language Selector Bar -->
+          <div class="language-selector-bar">
+            <span class="language-label">Language:</span>
+            <div class="language-chips">
+              <button
+                type="button"
+                class="lang-chip"
+                [class.active]="selectedLanguage === 'original'"
+                (click)="selectLanguage('original')"
+              >
+                Original ({{ (activeJob.language || 'en') | uppercase }})
+              </button>
+
+              <!-- Hindi (hi) -->
+              <button
+                *ngIf="hasTranslation('hi')"
+                type="button"
+                class="lang-chip"
+                [class.active]="selectedLanguage === 'hi'"
+                (click)="selectLanguage('hi')"
+              >
+                हिन्दी (Hindi)
+              </button>
+              <button
+                *ngIf="!hasTranslation('hi')"
+                type="button"
+                class="lang-chip add-lang-chip"
+                (click)="requestNewTranslation('hi')"
+                [disabled]="isTranslating"
+                title="Translate to Hindi"
+              >
+                <mat-icon>translate</mat-icon>
+                + हिन्दी
+              </button>
+
+              <!-- Marathi (mr) -->
+              <button
+                *ngIf="hasTranslation('mr')"
+                type="button"
+                class="lang-chip"
+                [class.active]="selectedLanguage === 'mr'"
+                (click)="selectLanguage('mr')"
+              >
+                मराठी (Marathi)
+              </button>
+              <button
+                *ngIf="!hasTranslation('mr')"
+                type="button"
+                class="lang-chip add-lang-chip"
+                (click)="requestNewTranslation('mr')"
+                [disabled]="isTranslating"
+                title="Translate to Marathi"
+              >
+                <mat-icon>translate</mat-icon>
+                + मराठी
+              </button>
+
+              <span *ngIf="isTranslating" class="translating-indicator">
+                <mat-spinner diameter="16"></mat-spinner>
+                Translating...
+              </span>
+            </div>
+          </div>
+
           <!-- Speaker Diarization Filter & Management Bar -->
           <div class="speaker-filter-bar" *ngIf="speakers.length > 0">
             <span class="speaker-filter-label">Speakers:</span>
@@ -205,7 +269,7 @@
                       <mat-icon>edit</mat-icon>
                     </button>
                   </div>
-                  <p class="segment-text">{{ seg.text }}</p>
+                  <p class="segment-text" [class.translated]="selectedLanguage !== 'original'">{{ getSegmentDisplayText(seg) }}</p>
                 </ng-container>
 
                 <!-- In-place Edit Form -->

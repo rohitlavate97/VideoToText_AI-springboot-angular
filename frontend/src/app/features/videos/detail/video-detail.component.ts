@@ -17,8 +17,10 @@ import { MatSelectModule } from '@angular/material/select';
 import { VideoService } from '../../../core/services/video.service';
 import { TranscriptionService } from '../../../core/services/transcription.service';
 import { SpeakerService } from '../../../core/services/speaker.service';
+import { TranslationService } from '../../../core/services/translation.service';
 import { VideoResponse } from '../../../core/models/video.model';
 import { SpeakerResponse } from '../../../core/models/speaker.model';
+import { TranslationResponse } from '../../../core/models/translation.model';
 import {
   CreateTranscriptionRequest,
   JobProgressEvent,
@@ -61,6 +63,7 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
   private readonly videoService = inject(VideoService);
   private readonly transcriptionService = inject(TranscriptionService);
   private readonly speakerService = inject(SpeakerService);
+  private readonly translationService = inject(TranslationService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
@@ -68,6 +71,9 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
   activeJob: TranscriptionJobResponse | null = null;
   segments: TranscriptSegmentResponse[] = [];
   speakers: SpeakerResponse[] = [];
+  translations: TranslationResponse[] = [];
+  selectedLanguage: string = 'original';
+  isTranslating: boolean = false;
   progressEvent: JobProgressEvent | null = null;
   searchQuery = '';
   selectedSpeakerFilter: string | null = null;
@@ -134,6 +140,7 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
           } else if (this.activeJob.status === 'COMPLETED') {
             this.loadSegments(this.activeJob.id);
             this.loadSpeakers(this.activeJob.id);
+            this.loadTranslations(this.activeJob.id);
           }
         }
       },
@@ -157,6 +164,7 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
             this.activeJob.status = 'COMPLETED';
             this.loadSegments(jobId);
             this.loadSpeakers(jobId);
+            this.loadTranslations(jobId);
           }
         }
       },
@@ -212,6 +220,59 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
 
   filterBySpeaker(label: string | null): void {
     this.selectedSpeakerFilter = this.selectedSpeakerFilter === label ? null : label;
+  }
+
+  loadTranslations(jobId: string): void {
+    this.translationService.getTranslations(jobId).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.translations = res.data;
+        }
+      },
+      error: () => {}
+    });
+  }
+
+  selectLanguage(lang: string): void {
+    this.selectedLanguage = lang;
+  }
+
+  requestNewTranslation(lang: string): void {
+    if (!this.activeJob) return;
+    this.isTranslating = true;
+    this.translationService.requestTranslation(this.activeJob.id, { targetLanguage: lang }).subscribe({
+      next: (res) => {
+        this.isTranslating = false;
+        if (res.success && res.data) {
+          this.translations.push(res.data);
+          this.selectedLanguage = lang;
+          this.snackBar.open(`Translated transcript into ${lang.toUpperCase()} successfully!`, 'OK', { duration: 3000 });
+        }
+      },
+      error: (err) => {
+        this.isTranslating = false;
+        const msg = err?.error?.error?.message || 'Failed to generate translation';
+        this.snackBar.open(msg, 'Close', { duration: 4000 });
+      }
+    });
+  }
+
+  hasTranslation(lang: string): boolean {
+    return this.translations.some(t => t.targetLanguage.toLowerCase() === lang.toLowerCase());
+  }
+
+  getSegmentDisplayText(seg: TranscriptSegmentResponse): string {
+    if (this.selectedLanguage === 'original') {
+      return seg.text;
+    }
+    const tr = this.translations.find(t => t.targetLanguage.toLowerCase() === this.selectedLanguage.toLowerCase());
+    if (tr && tr.segments) {
+      const match = tr.segments.find(s => s.segmentIndex === seg.segmentIndex);
+      if (match && match.translatedText) {
+        return match.translatedText;
+      }
+    }
+    return seg.text;
   }
 
   getSpeakerName(label?: string): string {
