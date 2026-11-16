@@ -10,6 +10,7 @@ import com.videototext.transcription.dto.CreateTranscriptionRequest;
 import com.videototext.transcription.dto.ReassignSpeakerRequest;
 import com.videototext.transcription.dto.TranscriptResponse;
 import com.videototext.transcription.dto.TranscriptRevisionResponse;
+import com.videototext.transcription.dto.TranscriptSearchResponse;
 import com.videototext.transcription.dto.TranscriptSegmentResponse;
 import com.videototext.transcription.dto.TranscriptionJobResponse;
 import com.videototext.transcription.dto.TranscriptionMessagePayload;
@@ -33,6 +34,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Instant;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.UUID;
@@ -239,6 +241,41 @@ public class TranscriptionService {
                 .fullText(fullText)
                 .segments(segmentResponses)
                 .completedAt(job.getCompletedAt())
+                .build();
+    }
+
+    @Transactional(readOnly = true)
+    public TranscriptSearchResponse searchTranscript(UUID userId, UUID jobId, String query) {
+        TranscriptionJob job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("TranscriptionJob", "id", jobId));
+
+        if (!job.getUser().getId().equals(userId)) {
+            throw new ForbiddenException("You do not have permission to search transcripts for this job");
+        }
+
+        if (query == null || query.trim().isEmpty()) {
+            return TranscriptSearchResponse.builder()
+                    .query(query)
+                    .totalMatches(0)
+                    .matches(Collections.emptyList())
+                    .build();
+        }
+
+        Map<UUID, Speaker> speakerMap = speakerRepository.findByJobIdOrderBySpeakerLabelAsc(jobId)
+                .stream()
+                .collect(Collectors.toMap(Speaker::getId, Function.identity(), (a, b) -> a));
+
+        List<TranscriptSegment> matchingSegments = segmentRepository
+                .findByJobIdAndTextContainingIgnoreCaseOrderBySegmentIndexAsc(jobId, query.trim());
+
+        List<TranscriptSegmentResponse> matchResponses = matchingSegments.stream()
+                .map(seg -> TranscriptSegmentResponse.fromEntity(seg, speakerMap))
+                .collect(Collectors.toList());
+
+        return TranscriptSearchResponse.builder()
+                .query(query.trim())
+                .totalMatches(matchResponses.size())
+                .matches(matchResponses)
                 .build();
     }
 

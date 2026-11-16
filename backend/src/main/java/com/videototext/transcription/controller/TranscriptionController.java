@@ -7,6 +7,7 @@ import com.videototext.transcription.dto.CreateTranscriptionRequest;
 import com.videototext.transcription.dto.ReassignSpeakerRequest;
 import com.videototext.transcription.dto.TranscriptResponse;
 import com.videototext.transcription.dto.TranscriptRevisionResponse;
+import com.videototext.transcription.dto.TranscriptSearchResponse;
 import com.videototext.transcription.dto.TranscriptSegmentResponse;
 import com.videototext.transcription.dto.TranscriptionJobResponse;
 import com.videototext.transcription.dto.UpdateTranscriptSegmentRequest;
@@ -104,6 +105,17 @@ public class TranscriptionController {
             return ResponseEntity.ok(ApiResponse.success(pageResponse));
         }
         List<TranscriptSegmentResponse> response = transcriptionService.getJobSegments(userDetails.getId(), jobId);
+        return ResponseEntity.ok(ApiResponse.success(response));
+    }
+
+    @Operation(summary = "Search transcript segments", description = "Searches transcript segments by spoken text keyword or phrase")
+    @GetMapping("/{jobId}/search")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<TranscriptSearchResponse>> searchTranscript(
+            @PathVariable UUID jobId,
+            @RequestParam String query,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        TranscriptSearchResponse response = transcriptionService.searchTranscript(userDetails.getId(), jobId, query);
         return ResponseEntity.ok(ApiResponse.success(response));
     }
 
