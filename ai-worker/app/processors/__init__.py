@@ -1,1 +1,3 @@
-"""Audio and video stream processing module."""
+from app.processors.base_processor import BaseJobProcessor, DefaultJobProcessor
+
+__all__ = ["BaseJobProcessor", "DefaultJobProcessor"]
