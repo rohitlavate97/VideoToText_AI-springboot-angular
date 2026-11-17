@@ -14,15 +14,19 @@ import { MatDialog, MatDialogModule } from '@angular/material/dialog';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
+import { MatMenuModule } from '@angular/material/menu';
+import { MatCheckboxModule } from '@angular/material/checkbox';
 import { VideoService } from '../../../core/services/video.service';
 import { TranscriptionService } from '../../../core/services/transcription.service';
 import { SpeakerService } from '../../../core/services/speaker.service';
 import { TranslationService } from '../../../core/services/translation.service';
 import { SummaryService } from '../../../core/services/summary.service';
+import { SubtitleService } from '../../../core/services/subtitle.service';
 import { VideoResponse } from '../../../core/models/video.model';
 import { SpeakerResponse } from '../../../core/models/speaker.model';
 import { TranslationResponse } from '../../../core/models/translation.model';
 import { SummaryResponse, ActionItemDto, ChapterDto, TopicDto } from '../../../core/models/summary.model';
+import { SubtitleResponse } from '../../../core/models/subtitle.model';
 import {
   CreateTranscriptionRequest,
   JobProgressEvent,
@@ -52,7 +56,9 @@ import {
     MatDialogModule,
     MatFormFieldModule,
     MatInputModule,
-    MatSelectModule
+    MatSelectModule,
+    MatMenuModule,
+    MatCheckboxModule
   ],
   templateUrl: './video-detail.component.html',
   styleUrls: ['./video-detail.component.scss']
@@ -67,6 +73,7 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
   private readonly speakerService = inject(SpeakerService);
   private readonly translationService = inject(TranslationService);
   private readonly summaryService = inject(SummaryService);
+  private readonly subtitleService = inject(SubtitleService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
@@ -80,6 +87,13 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
   progressEvent: JobProgressEvent | null = null;
   searchQuery = '';
   selectedSpeakerFilter: string | null = null;
+
+  // Subtitles & Exports State
+  subtitles: SubtitleResponse[] = [];
+  isLoadingSubtitles = false;
+  isExporting = false;
+  selectedExportFormat: string = 'SRT';
+  exportIncludeSpeakers: boolean = false;
 
   // Summary & Intelligent Insights State
   summary: SummaryResponse | null = null;
@@ -153,6 +167,7 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
             this.loadSpeakers(this.activeJob.id);
             this.loadTranslations(this.activeJob.id);
             this.loadSummary(this.activeJob.id);
+            this.loadSubtitles(this.activeJob.id);
           }
         }
       },
@@ -178,6 +193,7 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
             this.loadSpeakers(jobId);
             this.loadTranslations(jobId);
             this.loadSummary(jobId);
+            this.loadSubtitles(jobId);
           }
         }
       },
@@ -518,6 +534,101 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
       result = result.filter(s => s.text.toLowerCase().includes(q));
     }
     return result;
+  }
+
+  loadSubtitles(jobId: string): void {
+    this.isLoadingSubtitles = true;
+    this.subtitleService.getSubtitles(jobId).subscribe({
+      next: (res) => {
+        if (res.success && res.data) {
+          this.subtitles = res.data;
+        }
+        this.isLoadingSubtitles = false;
+      },
+      error: () => {
+        this.isLoadingSubtitles = false;
+      }
+    });
+  }
+
+  quickExport(format: string): void {
+    if (!this.activeJob) return;
+    this.isExporting = true;
+    const lang = this.selectedLanguage === 'original'
+      ? (this.activeJob.language || 'en')
+      : this.selectedLanguage;
+
+    this.subtitleService.downloadSubtitle(this.activeJob.id, format, lang, this.exportIncludeSpeakers).subscribe({
+      next: (blob) => {
+        const ext = format.toLowerCase();
+        const filename = `${this.video?.originalFilename || 'transcript'}_${lang}.${ext}`;
+        this.subtitleService.saveBlob(blob, filename);
+        this.isExporting = false;
+        this.snackBar.open(`Exported ${format} successfully`, 'Close', { duration: 3000 });
+        if (this.activeJob) {
+          this.loadSubtitles(this.activeJob.id);
+        }
+      },
+      error: (err) => {
+        this.isExporting = false;
+        this.snackBar.open('Export failed: ' + (err.error?.message || err.message), 'Close', { duration: 4000 });
+      }
+    });
+  }
+
+  generateAndDownloadSubtitle(): void {
+    if (!this.activeJob) return;
+    this.isExporting = true;
+    const lang = this.selectedLanguage === 'original'
+      ? (this.activeJob.language || 'en')
+      : this.selectedLanguage;
+
+    this.subtitleService.generateSubtitle(this.activeJob.id, {
+      format: this.selectedExportFormat,
+      language: lang,
+      includeSpeakers: this.exportIncludeSpeakers
+    }).subscribe({
+      next: () => {
+        this.isExporting = false;
+        this.snackBar.open(`Generated ${this.selectedExportFormat} subtitle`, 'Close', { duration: 3000 });
+        if (this.activeJob) {
+          this.loadSubtitles(this.activeJob.id);
+        }
+        this.quickExport(this.selectedExportFormat);
+      },
+      error: (err) => {
+        this.isExporting = false;
+        this.snackBar.open('Failed to generate subtitle: ' + (err.error?.message || err.message), 'Close', { duration: 4000 });
+      }
+    });
+  }
+
+  downloadExistingSubtitle(sub: SubtitleResponse): void {
+    if (!this.activeJob) return;
+    this.subtitleService.downloadSubtitleById(this.activeJob.id, sub.id).subscribe({
+      next: (blob) => {
+        const ext = sub.format.toLowerCase();
+        const filename = `${this.video?.originalFilename || 'transcript'}_${sub.language}.${ext}`;
+        this.subtitleService.saveBlob(blob, filename);
+        this.snackBar.open(`Downloaded ${sub.format} subtitle`, 'Close', { duration: 3000 });
+      },
+      error: () => {
+        this.snackBar.open('Download failed', 'Close', { duration: 3000 });
+      }
+    });
+  }
+
+  deleteExistingSubtitle(sub: SubtitleResponse): void {
+    if (!this.activeJob) return;
+    this.subtitleService.deleteSubtitle(this.activeJob.id, sub.id).subscribe({
+      next: () => {
+        this.subtitles = this.subtitles.filter(s => s.id !== sub.id);
+        this.snackBar.open('Subtitle deleted', 'Close', { duration: 3000 });
+      },
+      error: () => {
+        this.snackBar.open('Failed to delete subtitle', 'Close', { duration: 3000 });
+      }
+    });
   }
 
   deleteVideo(): void {

@@ -1478,3 +1478,119 @@
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
 }
+
+.export-card {
+  margin-top: 16px;
+  border-radius: 12px;
+  border: 1px solid #e2e8f0;
+
+  .export-header {
+    padding: 12px 16px;
+    border-bottom: 1px solid #f1f5f9;
+
+    .export-title {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.95rem;
+      font-weight: 600;
+      color: #1e293b;
+
+      mat-icon {
+        color: #4f46e5;
+        font-size: 20px;
+        width: 20px;
+        height: 20px;
+      }
+    }
+  }
+
+  .export-content {
+    padding: 16px;
+
+    .export-form-row {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      flex-wrap: wrap;
+
+      .format-select-field {
+        width: 170px;
+      }
+
+      .speakers-checkbox {
+        font-size: 0.85rem;
+      }
+
+      .generate-btn {
+        margin-left: auto;
+        display: flex;
+        align-items: center;
+        gap: 6px;
+      }
+    }
+
+    .saved-subtitles-section {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px dashed #e2e8f0;
+
+      .saved-label {
+        font-size: 0.8rem;
+        font-weight: 600;
+        color: #64748b;
+        margin-bottom: 8px;
+      }
+
+      .saved-list {
+        display: flex;
+        flex-direction: column;
+        gap: 6px;
+
+        .saved-item {
+          display: flex;
+          align-items: center;
+          justify-content: space-between;
+          padding: 6px 10px;
+          background: #f8fafc;
+          border-radius: 6px;
+          border: 1px solid #f1f5f9;
+
+          .sub-meta {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 0.8rem;
+
+            .sub-format {
+              font-weight: 700;
+              background: #e0e7ff;
+              color: #3730a3;
+              padding: 2px 6px;
+              border-radius: 4px;
+            }
+
+            .sub-lang {
+              font-weight: 600;
+              color: #475569;
+            }
+
+            .sub-speakers-tag {
+              background: #fef3c7;
+              color: #92400e;
+              font-size: 0.7rem;
+              padding: 1px 4px;
+              border-radius: 3px;
+            }
+          }
+
+          .sub-actions {
+            display: flex;
+            align-items: center;
+          }
+        }
+      }
+    }
+  }
+}
+

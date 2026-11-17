@@ -36,6 +36,35 @@
         <span class="upload-date">Uploaded on {{ video.createdAt | date:'fullDate' }}</span>
       </div>
       <div class="action-buttons">
+        <button
+          mat-raised-button
+          color="accent"
+          [matMenuTriggerFor]="exportMenu"
+          [disabled]="!activeJob || activeJob.status !== 'COMPLETED' || isExporting"
+        >
+          <mat-icon>file_download</mat-icon>
+          Export
+          <mat-icon>arrow_drop_down</mat-icon>
+        </button>
+        <mat-menu #exportMenu="matMenu">
+          <button mat-menu-item (click)="quickExport('SRT')">
+            <mat-icon>subtitles</mat-icon>
+            <span>SubRip Subtitles (.srt)</span>
+          </button>
+          <button mat-menu-item (click)="quickExport('VTT')">
+            <mat-icon>closed_caption</mat-icon>
+            <span>WebVTT Subtitles (.vtt)</span>
+          </button>
+          <button mat-menu-item (click)="quickExport('TXT')">
+            <mat-icon>description</mat-icon>
+            <span>Plain Text Transcript (.txt)</span>
+          </button>
+          <button mat-menu-item (click)="quickExport('JSON')">
+            <mat-icon>code</mat-icon>
+            <span>Structured Data (.json)</span>
+          </button>
+        </mat-menu>
+
         <a mat-raised-button color="primary" [href]="video.downloadUrl" target="_blank" *ngIf="video.downloadUrl">
           <mat-icon>download</mat-icon>
           Download Original
@@ -134,6 +163,67 @@
               {{ activeJob && activeJob.status === 'COMPLETED' ? 'Re-transcribe with New Settings' : 'Start Transcription' }}
             </button>
           </div>
+        </mat-card>
+
+        <!-- Subtitle & Export Card -->
+        <mat-card class="export-card" *ngIf="activeJob && activeJob.status === 'COMPLETED'">
+          <mat-card-header class="export-header">
+            <mat-card-title class="export-title">
+              <mat-icon>subtitles</mat-icon>
+              Subtitles & Exports
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content class="export-content">
+            <div class="export-form-row">
+              <mat-form-field appearance="outline" class="format-select-field">
+                <mat-label>Format</mat-label>
+                <mat-select [(ngModel)]="selectedExportFormat">
+                  <mat-option value="SRT">SubRip (.srt)</mat-option>
+                  <mat-option value="VTT">WebVTT (.vtt)</mat-option>
+                  <mat-option value="TXT">Plain Text (.txt)</mat-option>
+                  <mat-option value="JSON">Structured JSON (.json)</mat-option>
+                </mat-select>
+              </mat-form-field>
+
+              <mat-checkbox [(ngModel)]="exportIncludeSpeakers" class="speakers-checkbox">
+                Include Speakers
+              </mat-checkbox>
+
+              <button
+                mat-raised-button
+                color="primary"
+                (click)="generateAndDownloadSubtitle()"
+                [disabled]="isExporting"
+                class="generate-btn"
+              >
+                <mat-icon *ngIf="!isExporting">download</mat-icon>
+                <mat-spinner diameter="18" *ngIf="isExporting"></mat-spinner>
+                Generate & Download
+              </button>
+            </div>
+
+            <!-- Saved Subtitles List -->
+            <div class="saved-subtitles-section" *ngIf="subtitles && subtitles.length > 0">
+              <div class="saved-label">Available Subtitles:</div>
+              <div class="saved-list">
+                <div *ngFor="let sub of subtitles" class="saved-item">
+                  <div class="sub-meta">
+                    <span class="sub-format">{{ sub.format }}</span>
+                    <span class="sub-lang">{{ sub.language | uppercase }}</span>
+                    <span class="sub-speakers-tag" *ngIf="sub.includesSpeakers">Diarized</span>
+                  </div>
+                  <div class="sub-actions">
+                    <button mat-icon-button (click)="downloadExistingSubtitle(sub)" title="Download">
+                      <mat-icon>download</mat-icon>
+                    </button>
+                    <button mat-icon-button color="warn" (click)="deleteExistingSubtitle(sub)" title="Delete">
+                      <mat-icon>delete_outline</mat-icon>
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </mat-card-content>
         </mat-card>
       </div>
 
