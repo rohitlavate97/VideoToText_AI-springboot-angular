@@ -156,6 +156,18 @@
 
 ---
 
+## Phase 11 — AI Summary and Intelligent Insights
+
+| # | Functionality | Status | Commit | Notes |
+|---|---------------|--------|--------|-------|
+| 11.1 | Summary Provider Abstraction & Models | ✅ Done | `70c51f5` | `BaseSummaryProvider` ABC, `SummaryLength`, `SummaryFormat`, `PrivacyMode` (LOCAL_ONLY, CLOUD_ALLOWED) |
+| 11.2 | Video Summary Engine & Backend Entities | ✅ Done | `ed58b0b` | `Summary` entity (Flyway V10), `SummaryRepository`, `SummaryService`, `SummaryController` REST APIs, Stage 6 ASR integration |
+| 11.3 | Key Points, Action Items & Topic Extraction | ✅ Done | `9831450` | `KeyPointExtractor`, `ActionItemExtractor` with speaker & timestamp binding, `TopicIdentifier` |
+| 11.4 | Chapter Generation & Angular Insights UI | ✅ Done | `4b614a2` | Chronological chapter navigation, `seekTo()` video seeking, interactive insights dashboard tab card |
+| 11.5 | Summary Test Suites (Pytest & Maven) | ✅ Done | `f5ff01a` | 10 AI worker pytest tests (63/63 total), 7 Spring Boot integration tests (69/69 total), Angular build clean |
+
+---
+
 ## Phase Checklist
 
 | Phase | Description | Status |
@@ -171,8 +183,8 @@
 | **Phase 8** | Speaker diarization | ✅ Completed |
 | **Phase 9** | Transcript management and editor | ✅ Completed |
 | **Phase 10** | Translation | ✅ Completed |
-| Phase 11 | AI summary and intelligent insights | ⬜ Next |
-| Phase 12 | Subtitle generation and exports | ⬜ Not Started |
+| **Phase 11** | AI summary and intelligent insights | ✅ Completed |
+| Phase 12 | Subtitle generation and exports | ⬜ Next |
 | Phase 13 | Angular dashboard and complete user experience | ⬜ Not Started |
 | Phase 14 | Real-time processing updates | ⬜ Not Started |
 | Phase 15 | Security and reliability | ⬜ Not Started |
@@ -185,4 +197,4 @@
 
 ## Next Step
 
-Begin Phase 11: AI Summary and Intelligent Insights (LLM provider abstraction, extractive and abstractive summarization, action items, key topic extraction, sentiment analysis, meeting minutes generation, and Angular insights dashboard).
+Begin Phase 12: Subtitle Generation and Exports (SRT, VTT, TXT, structured JSON, multilingual subtitle exports, downloadable endpoints, and export metadata tracking).

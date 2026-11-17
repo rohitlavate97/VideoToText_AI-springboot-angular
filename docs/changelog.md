@@ -142,3 +142,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - On-demand translation generation trigger with progress indicator.
     - Synchronized video preview player seeking across all languages with preserved timestamp pills and diarized speaker badges.
     - Production bundle clean (`ng build`, 406 kB initial bundle).
+- **Phase 11**:
+  - Python AI Worker intelligent insights & summary engine:
+    - Provider abstraction (`BaseSummaryProvider` ABC), models (`SummaryLength`, `SummaryFormat`, `PrivacyMode`, `ActionItem`, `Topic`, `Chapter`, `TranscriptSegmentInput`, `InsightRequest`, `InsightResult`).
+    - Privacy enforcement: `enforce_privacy()` blocking cloud LLMs (OpenAI, Anthropic) under `LOCAL_ONLY` privacy setting.
+    - Providers: `LocalHeuristicSummaryEngine` (pure Python, 100% WDAC safe, zero C-extensions, sentence salience and entropy scoring), `HostedLLMSummaryEngine` (OpenAI / Ollama provider with local fallback), `MockSummaryProvider`, and `SummaryEngineFactory`.
+    - `KeyPointExtractor`, `ActionItemExtractor` (syntactic pattern and modal obligation detection with speaker attribution and timestamps), and `TopicIdentifier` (TF-IDF keyword and bigram clustering with timestamp localization).
+    - `SummaryPipeline` batch processor and Stage 6 (`SUMMARIZING`) in `VideoTranscriptionProcessor`.
+    - Pytest suite with 10 summary tests (63/63 total tests passing).
+  - Spring Boot 3.5.0 summary and insights backend:
+    - `Summary` entity mapped to Flyway `summaries` table (V10) with `SummaryRepository`.
+    - DTOs: `ActionItemDto`, `TopicDto`, `ChapterDto`, `GenerateSummaryRequest`, `SummaryResponse`.
+    - `SummaryService` supporting length modes (short, medium, detailed), format styles (paragraph, bullets, executive), speaker attribution, action item detection, topic clustering, and chapter segmentation.
+    - `SummaryController` REST endpoints: `GET /{jobId}/summary`, `POST /{jobId}/summary`, `DELETE /{jobId}/summary`.
+    - `SummaryControllerIntegrationTest` with 7 integration tests covering all paths and security (69/69 total backend tests passing).
+  - Angular 17 AI insights & chapters frontend:
+    - `summary.model.ts` and `SummaryService`.
+    - Chronological video chapters navigator under video player with direct timeline seeking (`seekTo(ch.startTime)`).
+    - Full AI Insights & Summary card with length selector, format toggle, action items checklist with checkboxes, topic chips with relevance percentages, and chapter cards.
+    - Production bundle clean (`ng build`, 406.98 kB initial bundle).

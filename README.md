@@ -45,6 +45,12 @@ VideoToText AI is built with an asynchronous, decoupled, event-driven microservi
   - Quality assurance engine verifying length ratios, Devanagari Unicode integrity (`0x0900 - 0x097F`), and hallucination detection.
   - Strict preservation of start/end timestamps and diarized speaker attributions across all translated segments.
   - Dynamic frontend language switcher (`Original [EN]`, `हिन्दी [HI]`, `मराठी [MR]`) with instant on-demand translation triggers and synchronized player seeking.
+- **AI Summary & Intelligent Insights Engine**:
+  - Pluggable provider abstraction with strict privacy enforcement (`LOCAL_ONLY`, `CLOUD_ALLOWED`, `HYBRID`) blocking cloud leaks.
+  - Multi-length summary synthesis (`short`, `medium`, `detailed`) and formats (`paragraph`, `bullets`, `executive`).
+  - Key points extraction, action items detection with speaker attribution and timestamps, and topic clustering with relevance scores.
+  - Chronological video chapter generation with synchronized timeline navigation (`seekTo()`).
+  - Interactive Angular insights dashboard tab card and chapter navigation pill bar.
 
 ---
 
@@ -59,6 +65,7 @@ VideoToText_AI-springboot-angular/
 │   │   │   ├── common/        # Shared DTOs, BaseEntity, Exception handling
 │   │   │   ├── config/        # Security, RabbitMQ, Redis, S3, Swagger config
 │   │   │   ├── speaker/       # Speaker diarization entities, service & APIs
+│   │   │   ├── summary/       # AI summary & insights entity, service & REST APIs
 │   │   │   ├── transcription/ # Transcription orchestration, SSE & consumers
 │   │   │   ├── translation/   # Multilingual translation entities, service & APIs
 │   │   │   ├── user/          # User entities, profile & preferences
@@ -88,8 +95,9 @@ VideoToText_AI-springboot-angular/
 │   │   ├── processors/        # VideoTranscriptionProcessor pipeline
 │   │   ├── providers/         # faster-whisper & Mock ASR providers
 │   │   ├── storage/           # S3 storage client
+│   │   ├── summarization/     # Summary provider abstraction, local NLP engine & insights
 │   │   └── translation/       # Dictionary & neural translation engines & quality checks
-│   ├── tests/                 # Comprehensive pytest test suite (53 tests)
+│   ├── tests/                 # Comprehensive pytest test suite (63 tests)
 │   ├── Dockerfile
 │   └── requirements.txt
 │
@@ -104,7 +112,8 @@ VideoToText_AI-springboot-angular/
 │   ├── phase7-summary.md      # Transcription Orchestration & Optimization
 │   ├── phase8-summary.md      # Speaker Diarization
 │   ├── phase9-summary.md      # Transcript Management & In-Place Editor
-│   └── phase10-summary.md     # Multilingual Translation Engine
+│   ├── phase10-summary.md     # Multilingual Translation Engine
+│   └── phase11-summary.md     # AI Summary & Intelligent Insights
 │
 ├── infrastructure/            # Deployment & Infra Configs
 │   ├── docker/
@@ -222,7 +231,8 @@ python -m app.main
 | **Phase 8** | Speaker Diarization | ✅ Completed |
 | **Phase 9** | Transcript Management & Editor | ✅ Completed |
 | **Phase 10** | Multilingual Translation | ✅ Completed |
-| Phase 11 | AI Summary & Intelligent Insights | ⬜ Next |
+| **Phase 11** | AI Summary & Intelligent Insights | ✅ Completed |
+| Phase 12 | Subtitle Generation & Exports | ⬜ Next |
 
 ---
 
@@ -241,18 +251,18 @@ Every milestone is documented in full detail with architectural decisions, schem
 - [Phase 8 Summary: Speaker Diarization](summary/phase8-summary.md)
 - [Phase 9 Summary: Transcript Management & In-Place Editor](summary/phase9-summary.md)
 - [Phase 10 Summary: Multilingual Translation Engine](summary/phase10-summary.md)
+- [Phase 11 Summary: AI Summary & Intelligent Insights Engine](summary/phase11-summary.md)
 
 ---
 
-## Next Milestone: Phase 11 — AI Summary & Intelligent Insights
+## Next Milestone: Phase 12 — Subtitle Generation and Exports
 
 The upcoming development session will implement:
-- **LLM Provider Abstraction**: Local Ollama / vLLM, OpenAI, and Claude API providers with streaming response support.
-- **Executive & Abstractive Summarization**: Concise summaries, key takeaways, and TL;DR generation based on transcribed and translated speech.
-- **Action Item & Decision Extraction**: Extraction of tasks, assignees, due dates, and key decisions.
-- **Topic & Chapter Segmentation**: Algorithmic topic modeling and semantic chapter segmentation with start/end timestamps.
-- **Sentiment & Engagement Analysis**: Segment-level and overall conversation sentiment scoring.
-- **Angular Insights UI**: Tabbed insights dashboard featuring visual summary cards, clickable action items, and topic tags.
+- **Subtitle Generation Formats**: SRT, WebVTT (.vtt), Plain Text (.txt), and structured JSON.
+- **Translated & Diarized Subtitles**: Supporting multiple languages and speaker display labels.
+- **Timestamp Validation**: Strict subtitle timestamp sequential consistency and frame formatting (`HH:MM:SS,mmm` / `HH:MM:SS.mmm`).
+- **Download Endpoints & Storage**: Secure presigned S3 downloads and export metadata persistence.
+- **Frontend Export UI**: Quick-export dropdown and direct subtitle downloads.
 
 ---
 
