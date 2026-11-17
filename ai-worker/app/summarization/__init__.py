@@ -17,6 +17,7 @@ from app.summarization.engine import (
     HostedLLMSummaryEngine,
     SummaryEngineFactory,
 )
+from app.summarization.pipeline import SummaryPipeline
 
 __all__ = [
     "SummaryLength",
@@ -33,4 +34,5 @@ __all__ = [
     "LocalHeuristicSummaryEngine",
     "HostedLLMSummaryEngine",
     "SummaryEngineFactory",
+    "SummaryPipeline",
 ]

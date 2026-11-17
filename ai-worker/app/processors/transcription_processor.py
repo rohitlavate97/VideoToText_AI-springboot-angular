@@ -15,6 +15,7 @@ from app.processors.vad_chunker import VADChunker
 from app.providers.base_provider import ASRProvider, TranscriptionOutput, TranscriptionSegment
 from app.providers.factory import ASRProviderFactory
 from app.translation.pipeline import TranslationPipeline
+from app.summarization.pipeline import SummaryPipeline
 
 logger = logging.getLogger(__name__)
 
@@ -159,12 +160,18 @@ class VideoTranscriptionProcessor(BaseJobProcessor):
                 )
 
             # Stage 6: Summarization (if requested)
+            insight_result = None
             if job.generate_summary:
                 self.emit_progress(
                     job.job_id,
                     ProcessingStage.SUMMARIZING,
                     96.0,
                     "Generating executive summary and bullet points..."
+                )
+                summary_pipeline = SummaryPipeline()
+                insight_result = summary_pipeline.process(
+                    segments=all_segments,
+                    job_id=job.job_id
                 )
 
             # Stage 7: Completed
