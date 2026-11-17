@@ -161,3 +161,32 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Chronological video chapters navigator under video player with direct timeline seeking (`seekTo(ch.startTime)`).
     - Full AI Insights & Summary card with length selector, format toggle, action items checklist with checkboxes, topic chips with relevance percentages, and chapter cards.
     - Production bundle clean (`ng build`, 406.98 kB initial bundle).
+- **Phase 12**:
+  - Python AI Worker subtitle formatting & validation engine:
+    - Domain models (`SubtitleFormat`, `SubtitleEntry`, `SubtitleGenerationRequest`, `SubtitleResult`) with MIME and file extension resolution.
+    - Timestamp formatters (`HH:MM:SS,mmm` for SRT, `HH:MM:SS.mmm` for VTT, `[HH:MM:SS]` for TXT).
+    - Natural line wrapping (`wrap_text`) adhering to subtitle presentation standards (42 chars/line, max 2 lines).
+    - Monotonic timestamp validation (`validate_and_normalize_entries`): chronological sorting, negative offset clamping, inverted timing recovery ($end \ge start + 0.1s$), and 1-based cue re-indexing.
+    - Support for SubRip (.srt), WebVTT (.vtt) with `<v Speaker>` voice tags, plain text (.txt), and structured JSON (.json).
+    - `SubtitleGenerator` orchestrator ingesting heterogeneous segment collections (`TranscriptionSegment`, `TranslatedSegment`, dicts).
+    - Pytest suite with 10 subtitle tests (73/73 total tests passing).
+  - Spring Boot 3.5.0 subtitle generation & export backend:
+    - `Subtitle` entity mapped to Flyway `subtitles` table (V11) with compound uniqueness on `(job_id, format, language, includes_speakers)`.
+    - `Export` entity mapped to Flyway `exports` table (V12) with audit metadata tracking.
+    - `SubtitleRepository` and `ExportRepository`.
+    - DTOs: `GenerateSubtitleRequest`, `SubtitleResponse`, `ExportResponse`.
+    - `SubtitleService` managing subtitle formatting, speaker name resolution from `SpeakerRepository`, translated subtitle synthesis from `TranslationRepository`, MinIO/S3 persistence, on-the-fly regeneration fallback, and download stream handling.
+    - `SubtitleController` REST endpoints:
+      - `GET /api/v1/transcriptions/{jobId}/subtitles`: list generated subtitles.
+      - `POST /api/v1/transcriptions/{jobId}/subtitles`: generate subtitle in specified format and language.
+      - `GET /api/v1/transcriptions/{jobId}/subtitles/download`: query-based file download.
+      - `GET /api/v1/transcriptions/{jobId}/subtitles/{subtitleId}/download`: ID-based file download.
+      - `DELETE /api/v1/transcriptions/{jobId}/subtitles/{subtitleId}`: subtitle deletion.
+      - `GET /api/v1/transcriptions/{jobId}/export`: full transcript export file.
+      - `GET /api/v1/transcriptions/{jobId}/exports`: export audit history.
+    - `SubtitleControllerIntegrationTest` with 10 integration tests covering all paths and security (79/79 total backend tests passing).
+  - Angular 17 subtitle & export frontend:
+    - `subtitle.model.ts` and `SubtitleService` with binary blob download handler.
+    - Action-bar quick export dropdown menu with 1-click export for SubRip (.srt), WebVTT (.vtt), Plain Text (.txt), and Structured JSON (.json).
+    - Dedicated Subtitles & Exports card with format selector, speaker toggle, generate button with loading spinner, and saved subtitles list with direct download and delete.
+    - Clean production build with zero warnings and zero errors (`ng build`).

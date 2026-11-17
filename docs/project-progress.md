@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Phase** | Phase 10 — Translation |
+| **Current Phase** | Phase 12 — Subtitle Generation and Exports |
 | **Phase Status** | Completed |
 | **Last Updated** | 2026-11-17 |
 
@@ -168,6 +168,19 @@
 
 ---
 
+## Phase 12 — Subtitle Generation and Exports
+
+| # | Functionality | Status | Commit | Notes |
+|---|---------------|--------|--------|-------|
+| 12.1 | Subtitle Formatters & Models | ✅ Done | `4e01e2a` | `SubtitleFormat` (SRT, VTT, TXT, JSON), `SubtitleEntry`, `wrap_text`, monotonic timestamp validation |
+| 12.2 | Multi-Format Subtitle Generator | ✅ Done | `4e01e2a` | `SubtitleGenerator` supporting heterogeneous segments (`TranscriptionSegment`, `TranslatedSegment`, dicts) |
+| 12.3 | Subtitle & Export Backend Entities & Storage | ✅ Done | `ac25e40` | `Subtitle` (Flyway V11), `Export` (Flyway V12), `SubtitleService`, S3/MinIO upload & on-the-fly regeneration |
+| 12.4 | Subtitle & Export REST Endpoints | ✅ Done | `ac25e40` | List, generate, download (query or ID), delete, and export audit APIs in `SubtitleController` |
+| 12.5 | Angular Quick-Export & Management UI | ✅ Done | `c5fba0a` | Action-bar quick export dropdown (SRT, VTT, TXT, JSON), dedicated Subtitles card with speaker toggle & delete |
+| 12.6 | Comprehensive Subtitle Test Suites | ✅ Done | `4e01e2a`, `ac25e40` | 10 Python tests (73/73 passed), 10 Java integration tests (79/79 passed), clean Angular build |
+
+---
+
 ## Phase Checklist
 
 | Phase | Description | Status |
@@ -184,8 +197,8 @@
 | **Phase 9** | Transcript management and editor | ✅ Completed |
 | **Phase 10** | Translation | ✅ Completed |
 | **Phase 11** | AI summary and intelligent insights | ✅ Completed |
-| Phase 12 | Subtitle generation and exports | ⬜ Next |
-| Phase 13 | Angular dashboard and complete user experience | ⬜ Not Started |
+| **Phase 12** | Subtitle generation and exports | ✅ Completed |
+| Phase 13 | Angular dashboard and complete user experience | ⬜ Next |
 | Phase 14 | Real-time processing updates | ⬜ Not Started |
 | Phase 15 | Security and reliability | ⬜ Not Started |
 | Phase 16 | Testing and quality assurance | ⬜ Not Started |
@@ -197,4 +210,4 @@
 
 ## Next Step
 
-Begin Phase 12: Subtitle Generation and Exports (SRT, VTT, TXT, structured JSON, multilingual subtitle exports, downloadable endpoints, and export metadata tracking).
+Begin Phase 13: Angular Dashboard and Complete User Experience (advanced dashboard analytics, audio waveform visualizer, comprehensive status cards, and UX polish).

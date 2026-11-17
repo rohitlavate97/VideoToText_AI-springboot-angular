@@ -51,6 +51,13 @@ VideoToText AI is built with an asynchronous, decoupled, event-driven microservi
   - Key points extraction, action items detection with speaker attribution and timestamps, and topic clustering with relevance scores.
   - Chronological video chapter generation with synchronized timeline navigation (`seekTo()`).
   - Interactive Angular insights dashboard tab card and chapter navigation pill bar.
+- **Subtitle Generation & Multi-Format Exports**:
+  - Multi-format subtitle generation: SubRip (.srt), WebVTT (.vtt), Plain Text (.txt), and Structured JSON (.json).
+  - Strict monotonic timestamp validation ($end \ge start + 0.1s$), negative clamping, and rollover formatting (`HH:MM:SS,mmm` and `HH:MM:SS.mmm`).
+  - Speaker-labeled subtitles resolving diarized aliases to human-readable names (`<v Speaker>` voice tags for WebVTT and `[Speaker]:` prefixes).
+  - Translated subtitles exporting across source and translated languages (Hindi, Marathi, Spanish, etc.).
+  - S3/MinIO cloud persistence with compound uniqueness constraints and export metadata audit logging.
+  - Angular quick-export action-bar menu and dedicated subtitle management card with one-click downloads.
 
 ---
 
@@ -64,7 +71,9 @@ VideoToText_AI-springboot-angular/
 │   │   │   ├── auth/          # Authentication & JWT security
 │   │   │   ├── common/        # Shared DTOs, BaseEntity, Exception handling
 │   │   │   ├── config/        # Security, RabbitMQ, Redis, S3, Swagger config
+│   │   │   ├── export/        # Export audit entity, repository & DTOs
 │   │   │   ├── speaker/       # Speaker diarization entities, service & APIs
+│   │   │   ├── subtitle/      # Subtitle generation entity, service & REST APIs
 │   │   │   ├── summary/       # AI summary & insights entity, service & REST APIs
 │   │   │   ├── transcription/ # Transcription orchestration, SSE & consumers
 │   │   │   ├── translation/   # Multilingual translation entities, service & APIs
@@ -95,9 +104,10 @@ VideoToText_AI-springboot-angular/
 │   │   ├── processors/        # VideoTranscriptionProcessor pipeline
 │   │   ├── providers/         # faster-whisper & Mock ASR providers
 │   │   ├── storage/           # S3 storage client
+│   │   ├── subtitles/         # Subtitle formatters (SRT, VTT, TXT, JSON) & generator
 │   │   ├── summarization/     # Summary provider abstraction, local NLP engine & insights
 │   │   └── translation/       # Dictionary & neural translation engines & quality checks
-│   ├── tests/                 # Comprehensive pytest test suite (63 tests)
+│   ├── tests/                 # Comprehensive pytest test suite (73 tests)
 │   ├── Dockerfile
 │   └── requirements.txt
 │
@@ -113,7 +123,8 @@ VideoToText_AI-springboot-angular/
 │   ├── phase8-summary.md      # Speaker Diarization
 │   ├── phase9-summary.md      # Transcript Management & In-Place Editor
 │   ├── phase10-summary.md     # Multilingual Translation Engine
-│   └── phase11-summary.md     # AI Summary & Intelligent Insights
+│   ├── phase11-summary.md     # AI Summary & Intelligent Insights
+│   └── phase12-summary.md     # Subtitle Generation & Multi-Format Exports
 │
 ├── infrastructure/            # Deployment & Infra Configs
 │   ├── docker/
@@ -232,7 +243,8 @@ python -m app.main
 | **Phase 9** | Transcript Management & Editor | ✅ Completed |
 | **Phase 10** | Multilingual Translation | ✅ Completed |
 | **Phase 11** | AI Summary & Intelligent Insights | ✅ Completed |
-| Phase 12 | Subtitle Generation & Exports | ⬜ Next |
+| **Phase 12** | Subtitle Generation & Exports | ✅ Completed |
+| Phase 13 | Angular Dashboard & Complete UX | ⬜ Next |
 
 ---
 
@@ -252,17 +264,17 @@ Every milestone is documented in full detail with architectural decisions, schem
 - [Phase 9 Summary: Transcript Management & In-Place Editor](summary/phase9-summary.md)
 - [Phase 10 Summary: Multilingual Translation Engine](summary/phase10-summary.md)
 - [Phase 11 Summary: AI Summary & Intelligent Insights Engine](summary/phase11-summary.md)
+- [Phase 12 Summary: Subtitle Generation & Multi-Format Exports](summary/phase12-summary.md)
 
 ---
 
-## Next Milestone: Phase 12 — Subtitle Generation and Exports
+## Next Milestone: Phase 13 — Angular Dashboard and Complete User Experience
 
 The upcoming development session will implement:
-- **Subtitle Generation Formats**: SRT, WebVTT (.vtt), Plain Text (.txt), and structured JSON.
-- **Translated & Diarized Subtitles**: Supporting multiple languages and speaker display labels.
-- **Timestamp Validation**: Strict subtitle timestamp sequential consistency and frame formatting (`HH:MM:SS,mmm` / `HH:MM:SS.mmm`).
-- **Download Endpoints & Storage**: Secure presigned S3 downloads and export metadata persistence.
-- **Frontend Export UI**: Quick-export dropdown and direct subtitle downloads.
+- **Interactive Analytics Dashboard**: Total video volume, transcription duration stats, language breakdown chart, and status gauges.
+- **Audio Waveform Visualizer**: Interactive zoomable audio waveform with playback position marker and region highlighting.
+- **Enhanced Video Card Actions**: Batch export, multi-select deletion, and quick status filters.
+- **UX Polish & Responsiveness**: Mobile-friendly navigation drawer, theme customizations, and keyboard shortcuts.
 
 ---
 
