@@ -65,6 +65,13 @@ class WorkerSettings(BaseSettings):
     CHUNK_DURATION_SECONDS: int = 600
     MAX_VIDEO_DURATION_MINUTES: int = 240
 
+    # Summarization & Insights Defaults
+    SUMMARY_DEFAULT_PROVIDER: str = "local"
+    SUMMARY_DEFAULT_MODEL: str = "heuristic-nlp"
+    SUMMARY_PRIVACY_MODE: str = "local_only"
+    OPENAI_API_KEY: str = ""
+    OLLAMA_BASE_URL: str = "http://localhost:11434"
+
     # Retry Strategy
     MAX_RETRIES: int = 3
     INITIAL_RETRY_DELAY_SECONDS: float = 2.0
