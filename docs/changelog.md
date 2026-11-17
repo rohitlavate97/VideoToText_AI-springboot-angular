@@ -190,3 +190,22 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Action-bar quick export dropdown menu with 1-click export for SubRip (.srt), WebVTT (.vtt), Plain Text (.txt), and Structured JSON (.json).
     - Dedicated Subtitles & Exports card with format selector, speaker toggle, generate button with loading spinner, and saved subtitles list with direct download and delete.
     - Clean production build with zero warnings and zero errors (`ng build`).
+- **Phase 13**:
+  - Spring Boot 3.5.0 dashboard telemetry & analytics backend:
+    - `RecentActivityDto` and `DashboardStatsResponse` DTO contracts aggregating user metrics.
+    - `DashboardService` calculating total videos, audio duration, transcribed word volume, export count, pipeline status counts (`COMPLETED`, `PROCESSING`, `QUEUED`, `FAILED`), language breakdown distributions, and recent activity feed.
+    - `DashboardController` REST endpoint: `GET /api/v1/dashboard/stats`.
+    - `DashboardControllerIntegrationTest` with 3 integration tests covering aggregate calculations, empty-state initialization, and 401 unauthorized protection (82/82 total backend tests passing).
+  - Angular 17 interactive analytics dashboard:
+    - Strongly-typed `dashboard.model.ts` and `DashboardService`.
+    - 4 KPI metric cards (Total Videos, Audio Processed, Words Transcribed, Files Exported) with gradients and Material symbols.
+    - Real-time pipeline status gauges and language distribution breakdown progress bars.
+    - Chronological recent activity cards with one-click direct navigation to video details.
+    - Quick action links for video upload, library navigation, and AI settings.
+  - Interactive audio waveform visualizer & player engine:
+    - HTML5 canvas waveform visualizer (`drawWaveform()`) rendering dynamic speech amplitude bars and silence gaps from transcript cues.
+    - Live synchronized playhead cursor tracking playback time.
+    - Click-to-seek functionality: clicking anywhere on the waveform seeks video playback to the exact timestamp.
+    - Video playback enhancement controls: +/-5s skip, play/pause toggle, digital time readout, and variable playback speeds (`0.75x`, `1.0x`, `1.25x`, `1.5x`, `2.0x`).
+    - Real-time active speech segment highlighting (`.active-segment`) synchronized with video playback.
+    - Verified Angular production build with zero errors and zero warnings (`ng build`).
