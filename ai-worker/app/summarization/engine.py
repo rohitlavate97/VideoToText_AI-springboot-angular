@@ -16,6 +16,7 @@ from app.summarization.models import (
     InsightResult,
 )
 from app.summarization.provider import BaseSummaryProvider, MockSummaryProvider
+from app.summarization.insights import KeyPointExtractor, ActionItemExtractor, TopicIdentifier
 
 logger = logging.getLogger(__name__)
 
@@ -166,154 +167,21 @@ class LocalHeuristicSummaryEngine(BaseSummaryProvider):
         segments: List[TranscriptSegmentInput],
         max_points: int = 5
     ) -> List[str]:
-        source_text = text if text else " ".join(s.text for s in segments)
-        sentences = self._split_into_sentences(source_text)
-        if not sentences:
-            return ["No transcript text available for key points extraction."]
-
-        word_weights = self._compute_word_frequencies(sentences)
-        scored = self._score_sentences(sentences, word_weights)
-        top = sorted(scored, key=lambda x: x[2], reverse=True)[:max_points]
-
-        points: List[str] = []
-        for _, s, _ in sorted(top, key=lambda x: x[0]):
-            clean = s.strip()
-            if not clean.endswith("."):
-                clean += "."
-            points.append(clean)
-        return points
+        return KeyPointExtractor.extract(text, segments, max_points)
 
     def extract_action_items(
         self,
         text: str,
         segments: List[TranscriptSegmentInput]
     ) -> List[ActionItem]:
-        action_patterns = [
-            r"(?i)\b(?:we|i|you|team|he|she)\s+(?:need to|should|will|must|have to|ought to|are going to|are assigned to|shall)\s+([^.!?]+)",
-            r"(?i)\b(?:please|make sure to|ensure that|don't forget to|remember to|let's)\s+([^.!?]+)",
-            r"(?i)\b(?:action item|todo|to-do|task|follow up on|deadline|milestone)\s*:?\s*([^.!?]+)",
-        ]
-
-        items: List[ActionItem] = []
-        seen_tasks: Set[str] = set()
-
-        # Check segment-by-segment to capture exact speaker attribution and timestamps
-        if segments:
-            for seg in segments:
-                t = seg.text.strip()
-                for pat in action_patterns:
-                    matches = re.finditer(pat, t)
-                    for match in matches:
-                        task_desc = match.group(0).strip()
-                        # Shorten if overly long
-                        if len(task_desc) > 140:
-                            task_desc = task_desc[:137] + "..."
-                        norm = task_desc.lower()
-                        if norm not in seen_tasks:
-                            seen_tasks.add(norm)
-                            items.append(
-                                ActionItem(
-                                    task=task_desc,
-                                    assignee=seg.speaker_label or "Assigned Member",
-                                    timestamp=seg.start_time,
-                                    completed=False
-                                )
-                            )
-
-        # Fallback if no explicit segment patterns matched but text exists
-        if not items and text:
-            sentences = self._split_into_sentences(text)
-            for s in sentences:
-                for pat in action_patterns:
-                    match = re.search(pat, s)
-                    if match:
-                        task_desc = match.group(0).strip()
-                        norm = task_desc.lower()
-                        if norm not in seen_tasks:
-                            seen_tasks.add(norm)
-                            items.append(
-                                ActionItem(
-                                    task=task_desc,
-                                    assignee=segments[0].speaker_label if segments else "Team",
-                                    timestamp=segments[0].start_time if segments else 0.0,
-                                    completed=False
-                                )
-                            )
-                        break
-
-        # If still empty, provide general follow-up item
-        if not items:
-            default_timestamp = segments[0].start_time if segments else 0.0
-            default_speaker = segments[0].speaker_label if segments else "Presenter"
-            items.append(
-                ActionItem(
-                    task="Review transcription summary and execute discussed follow-ups",
-                    assignee=default_speaker,
-                    timestamp=default_timestamp,
-                    completed=False
-                )
-            )
-
-        return items[:8]
+        return ActionItemExtractor.extract(text, segments)
 
     def extract_topics(
         self,
         text: str,
         segments: List[TranscriptSegmentInput]
     ) -> List[Topic]:
-        source_text = text if text else " ".join(s.text for s in segments)
-        words = [w for w in self._tokenize_words(source_text) if w not in STOPWORDS]
-        if not words:
-            return [Topic(name="General Discussion", relevance=1.0, start_time=0.0)]
-
-        # Extract bi-grams and uni-grams
-        bigrams = [f"{words[i]} {words[i+1]}" for i in range(len(words)-1)
-                   if words[i] not in STOPWORDS and words[i+1] not in STOPWORDS]
-        
-        unigram_counts = Counter(words)
-        bigram_counts = Counter(bigrams)
-
-        candidate_topics: List[Tuple[str, int]] = []
-        # Filter bigrams with count >= 2
-        for bg, count in bigram_counts.most_common(10):
-            if count >= 2:
-                candidate_topics.append((bg.title(), count * 2))
-
-        # Add top unigrams
-        for ug, count in unigram_counts.most_common(10):
-            if count >= 2:
-                candidate_topics.append((ug.capitalize(), count))
-
-        if not candidate_topics:
-            # Fall back to most common unigrams even if frequency is 1
-            for ug, count in unigram_counts.most_common(4):
-                candidate_topics.append((ug.capitalize(), count))
-
-        # Deduplicate and normalize relevance
-        max_score = max((score for _, score in candidate_topics), default=1)
-        seen_names: Set[str] = set()
-        topics: List[Topic] = []
-
-        for name, score in candidate_topics:
-            norm = name.lower()
-            if norm in seen_names:
-                continue
-            seen_names.add(norm)
-            rel = round(min(1.0, score / max_score), 2)
-            
-            # Find earliest occurrence timestamp
-            earliest_time = 0.0
-            if segments:
-                for seg in segments:
-                    if re.search(r"\b" + re.escape(norm) + r"\b", seg.text.lower()):
-                        earliest_time = seg.start_time
-                        break
-
-            topics.append(Topic(name=name, relevance=rel, start_time=earliest_time))
-            if len(topics) >= 6:
-                break
-
-        return sorted(topics, key=lambda t: t.relevance, reverse=True)
+        return TopicIdentifier.identify(text, segments)
 
     def generate_chapters(
         self,

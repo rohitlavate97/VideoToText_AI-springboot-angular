@@ -12,6 +12,11 @@ from app.summarization.models import (
     InsightResult,
 )
 from app.summarization.provider import BaseSummaryProvider, MockSummaryProvider
+from app.summarization.insights import (
+    KeyPointExtractor,
+    ActionItemExtractor,
+    TopicIdentifier,
+)
 from app.summarization.engine import (
     LocalHeuristicSummaryEngine,
     HostedLLMSummaryEngine,
@@ -31,6 +36,9 @@ __all__ = [
     "InsightResult",
     "BaseSummaryProvider",
     "MockSummaryProvider",
+    "KeyPointExtractor",
+    "ActionItemExtractor",
+    "TopicIdentifier",
     "LocalHeuristicSummaryEngine",
     "HostedLLMSummaryEngine",
     "SummaryEngineFactory",

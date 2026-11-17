@@ -2,7 +2,7 @@ from typing import List, Optional, Union
 from uuid import UUID
 import logging
 
-from app.models.transcription import TranscriptionSegment
+from app.providers.base_provider import TranscriptionSegment
 from app.summarization.models import (
     SummaryLength,
     SummaryFormat,
