@@ -68,6 +68,29 @@
           </div>
         </div>
 
+        <!-- Video Chapters Navigation Bar -->
+        <mat-card class="chapters-nav-card" *ngIf="summary && summary.chapters && summary.chapters.length > 0">
+          <mat-card-header class="chapters-header">
+            <mat-card-title class="chapters-title">
+              <mat-icon>bookmarks</mat-icon>
+              Video Chapters
+            </mat-card-title>
+          </mat-card-header>
+          <mat-card-content class="chapters-list">
+            <button
+              type="button"
+              class="chapter-item"
+              *ngFor="let ch of summary.chapters"
+              (click)="seekTo(ch.startTime)"
+              [title]="ch.summary"
+            >
+              <span class="chapter-time">{{ formatSeconds(ch.startTime) }}</span>
+              <span class="chapter-title">{{ ch.title }}</span>
+              <mat-icon class="jump-icon">play_circle_outline</mat-icon>
+            </button>
+          </mat-card-content>
+        </mat-card>
+
         <!-- Live Transcription Progress Card -->
         <mat-card class="transcribe-card progress-mode" *ngIf="activeJob && (activeJob.status === 'PROCESSING' || activeJob.status === 'QUEUED')">
           <div class="transcribe-header">
@@ -324,6 +347,221 @@
             <div class="empty-transcript" *ngIf="filteredSegments.length === 0">
               <mat-icon>search_off</mat-icon>
               <p>{{ searchQuery ? 'No segments match your search query.' : 'No transcript segments found.' }}</p>
+            </div>
+          </mat-card-content>
+        </mat-card>
+
+        <!-- AI Summary & Intelligent Insights Card -->
+        <mat-card class="insights-card" *ngIf="activeJob && activeJob.status === 'COMPLETED'">
+          <mat-card-header class="insights-header">
+            <div class="header-content-row">
+              <mat-card-title class="title-with-badge">
+                <mat-icon>psychology</mat-icon>
+                AI Insights & Summary
+              </mat-card-title>
+              <div class="insight-actions">
+                <button
+                  mat-stroked-button
+                  color="primary"
+                  *ngIf="!summary && !isGeneratingSummary"
+                  (click)="generateSummary()"
+                  class="generate-btn"
+                >
+                  <mat-icon>auto_awesome</mat-icon>
+                  Generate Summary
+                </button>
+                <button
+                  mat-icon-button
+                  *ngIf="summary && !isGeneratingSummary"
+                  (click)="generateSummary()"
+                  title="Regenerate summary"
+                  class="action-icon-btn"
+                >
+                  <mat-icon>refresh</mat-icon>
+                </button>
+                <button
+                  mat-icon-button
+                  color="warn"
+                  *ngIf="summary && !isGeneratingSummary"
+                  (click)="deleteSummary()"
+                  title="Delete summary"
+                  class="action-icon-btn"
+                >
+                  <mat-icon>delete_outline</mat-icon>
+                </button>
+              </div>
+            </div>
+          </mat-card-header>
+
+          <mat-card-content class="insights-content">
+            <!-- Loading Indicator -->
+            <div *ngIf="isGeneratingSummary || isLoadingSummary" class="insights-loading">
+              <mat-spinner diameter="32"></mat-spinner>
+              <p>Analyzing speech and generating intelligent insights...</p>
+            </div>
+
+            <!-- Empty State -->
+            <div *ngIf="!summary && !isGeneratingSummary && !isLoadingSummary" class="insights-empty">
+              <mat-icon class="empty-icon">lightbulb_outline</mat-icon>
+              <h4>No Summary Generated Yet</h4>
+              <p>Click "Generate Summary" to produce executive summaries, key takeaways, action items, topics, and chapters.</p>
+              <div class="length-selector-row">
+                <label>Length:</label>
+                <mat-chip-listbox [(ngModel)]="selectedSummaryLength" class="length-chips">
+                  <mat-chip-option value="short">Short</mat-chip-option>
+                  <mat-chip-option value="medium">Medium</mat-chip-option>
+                  <mat-chip-option value="detailed">Detailed</mat-chip-option>
+                </mat-chip-listbox>
+              </div>
+              <button mat-raised-button color="primary" (click)="generateSummary()" class="empty-gen-btn">
+                <mat-icon>auto_awesome</mat-icon>
+                Generate Summary Now
+              </button>
+            </div>
+
+            <!-- Active Insights Tabs & Content -->
+            <div *ngIf="summary && !isGeneratingSummary && !isLoadingSummary" class="insights-body">
+              <!-- Insight Navigation Tabs -->
+              <div class="insight-tabs">
+                <button
+                  type="button"
+                  class="tab-btn"
+                  [class.active]="activeInsightTab === 'summary'"
+                  (click)="switchInsightTab('summary')"
+                >
+                  <mat-icon>subject</mat-icon>
+                  Summary
+                </button>
+                <button
+                  type="button"
+                  class="tab-btn"
+                  [class.active]="activeInsightTab === 'key_points'"
+                  (click)="switchInsightTab('key_points')"
+                >
+                  <mat-icon>checklist</mat-icon>
+                  Key Points ({{ summary.keyPoints.length }})
+                </button>
+                <button
+                  type="button"
+                  class="tab-btn"
+                  [class.active]="activeInsightTab === 'action_items'"
+                  (click)="switchInsightTab('action_items')"
+                >
+                  <mat-icon>assignment_turned_in</mat-icon>
+                  Action Items ({{ summary.actionItems.length }})
+                </button>
+                <button
+                  type="button"
+                  class="tab-btn"
+                  [class.active]="activeInsightTab === 'topics'"
+                  (click)="switchInsightTab('topics')"
+                >
+                  <mat-icon>label</mat-icon>
+                  Topics ({{ summary.topics.length }})
+                </button>
+                <button
+                  type="button"
+                  class="tab-btn"
+                  [class.active]="activeInsightTab === 'chapters'"
+                  (click)="switchInsightTab('chapters')"
+                >
+                  <mat-icon>bookmarks</mat-icon>
+                  Chapters ({{ summary.chapters.length }})
+                </button>
+              </div>
+
+              <!-- Tab 1: Summary -->
+              <div *ngIf="activeInsightTab === 'summary'" class="tab-content summary-tab">
+                <div class="length-toggle-bar">
+                  <div class="pill-group">
+                    <button
+                      type="button"
+                      class="pill-btn"
+                      [class.active]="selectedSummaryLength === 'short'"
+                      (click)="selectedSummaryLength = 'short'; generateSummary('short')"
+                    >Short</button>
+                    <button
+                      type="button"
+                      class="pill-btn"
+                      [class.active]="selectedSummaryLength === 'medium'"
+                      (click)="selectedSummaryLength = 'medium'; generateSummary('medium')"
+                    >Medium</button>
+                    <button
+                      type="button"
+                      class="pill-btn"
+                      [class.active]="selectedSummaryLength === 'detailed'"
+                      (click)="selectedSummaryLength = 'detailed'; generateSummary('detailed')"
+                    >Detailed</button>
+                  </div>
+                  <span class="provider-tag">{{ summary.llmProvider | uppercase }}</span>
+                </div>
+                <div class="summary-text-box">
+                  <p *ngFor="let paragraph of summary.summaryText.split('\n\n')">{{ paragraph }}</p>
+                </div>
+              </div>
+
+              <!-- Tab 2: Key Points -->
+              <div *ngIf="activeInsightTab === 'key_points'" class="tab-content key-points-tab">
+                <ul class="key-points-list">
+                  <li *ngFor="let point of summary.keyPoints" class="point-item">
+                    <mat-icon class="bullet-icon">check_circle</mat-icon>
+                    <span>{{ point }}</span>
+                  </li>
+                </ul>
+              </div>
+
+              <!-- Tab 3: Action Items -->
+              <div *ngIf="activeInsightTab === 'action_items'" class="tab-content action-items-tab">
+                <div *ngIf="summary.actionItems.length === 0" class="tab-empty">No action items detected.</div>
+                <div *ngFor="let item of summary.actionItems" class="action-item-card" [class.completed]="item.completed">
+                  <input type="checkbox" [checked]="item.completed" (change)="toggleActionItem(item)" class="action-checkbox" />
+                  <div class="action-details">
+                    <span class="action-task" [class.done]="item.completed">{{ item.task }}</span>
+                    <div class="action-meta">
+                      <span class="action-speaker" *ngIf="item.assignee">
+                        <mat-icon>person</mat-icon>
+                        {{ item.assignee }}
+                      </span>
+                      <button
+                        type="button"
+                        class="action-timestamp"
+                        *ngIf="item.timestamp !== undefined && item.timestamp !== null"
+                        (click)="seekTo(item.timestamp)"
+                      >
+                        <mat-icon>play_circle</mat-icon>
+                        {{ formatSeconds(item.timestamp) }}
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tab 4: Topics -->
+              <div *ngIf="activeInsightTab === 'topics'" class="tab-content topics-tab">
+                <div class="topics-cloud">
+                  <div
+                    *ngFor="let top of summary.topics"
+                    class="topic-badge"
+                    (click)="top.startTime !== undefined && top.startTime !== null ? seekTo(top.startTime) : null"
+                    [title]="'Relevance: ' + (top.relevance * 100) + '% - Click to seek'"
+                  >
+                    <mat-icon class="topic-icon">tag</mat-icon>
+                    <span class="topic-name">{{ top.name }}</span>
+                    <span class="topic-rel">{{ (top.relevance * 100).toFixed(0) }}%</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Tab 5: Chapters -->
+              <div *ngIf="activeInsightTab === 'chapters'" class="tab-content chapters-tab">
+                <div *ngFor="let ch of summary.chapters" class="chapter-card" (click)="seekTo(ch.startTime)">
+                  <div class="chapter-card-header">
+                    <span class="chapter-timing">{{ formatSeconds(ch.startTime) }} - {{ formatSeconds(ch.endTime) }}</span>
+                    <h5 class="chapter-title-text">{{ ch.title }}</h5>
+                  </div>
+                  <p class="chapter-synopsis">{{ ch.summary }}</p>
+                </div>
+              </div>
             </div>
           </mat-card-content>
         </mat-card>

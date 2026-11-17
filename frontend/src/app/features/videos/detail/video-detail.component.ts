@@ -18,9 +18,11 @@ import { VideoService } from '../../../core/services/video.service';
 import { TranscriptionService } from '../../../core/services/transcription.service';
 import { SpeakerService } from '../../../core/services/speaker.service';
 import { TranslationService } from '../../../core/services/translation.service';
+import { SummaryService } from '../../../core/services/summary.service';
 import { VideoResponse } from '../../../core/models/video.model';
 import { SpeakerResponse } from '../../../core/models/speaker.model';
 import { TranslationResponse } from '../../../core/models/translation.model';
+import { SummaryResponse, ActionItemDto, ChapterDto, TopicDto } from '../../../core/models/summary.model';
 import {
   CreateTranscriptionRequest,
   JobProgressEvent,
@@ -64,6 +66,7 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
   private readonly transcriptionService = inject(TranscriptionService);
   private readonly speakerService = inject(SpeakerService);
   private readonly translationService = inject(TranslationService);
+  private readonly summaryService = inject(SummaryService);
   private readonly snackBar = inject(MatSnackBar);
   private readonly dialog = inject(MatDialog);
 
@@ -77,6 +80,14 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
   progressEvent: JobProgressEvent | null = null;
   searchQuery = '';
   selectedSpeakerFilter: string | null = null;
+
+  // Summary & Intelligent Insights State
+  summary: SummaryResponse | null = null;
+  isLoadingSummary = false;
+  isGeneratingSummary = false;
+  selectedSummaryLength: string = 'medium';
+  selectedSummaryFormat: string = 'paragraph';
+  activeInsightTab: 'summary' | 'key_points' | 'action_items' | 'topics' | 'chapters' = 'summary';
 
   // Segment Editing State
   editingSegmentId: string | null = null;
@@ -141,6 +152,7 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
             this.loadSegments(this.activeJob.id);
             this.loadSpeakers(this.activeJob.id);
             this.loadTranslations(this.activeJob.id);
+            this.loadSummary(this.activeJob.id);
           }
         }
       },
@@ -165,6 +177,7 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
             this.loadSegments(jobId);
             this.loadSpeakers(jobId);
             this.loadTranslations(jobId);
+            this.loadSummary(jobId);
           }
         }
       },
@@ -259,6 +272,73 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
 
   hasTranslation(lang: string): boolean {
     return this.translations.some(t => t.targetLanguage.toLowerCase() === lang.toLowerCase());
+  }
+
+  loadSummary(jobId: string): void {
+    this.isLoadingSummary = true;
+    this.summaryService.getSummary(jobId).subscribe({
+      next: (res) => {
+        this.isLoadingSummary = false;
+        if (res.success && res.data) {
+          this.summary = res.data;
+        }
+      },
+      error: () => {
+        this.isLoadingSummary = false;
+      }
+    });
+  }
+
+  generateSummary(length?: string, format?: string): void {
+    if (!this.activeJob) return;
+    this.isGeneratingSummary = true;
+    const reqLen = length || this.selectedSummaryLength;
+    const reqFormat = format || this.selectedSummaryFormat;
+
+    this.summaryService.generateSummary(this.activeJob.id, {
+      summaryLength: reqLen,
+      summaryFormat: reqFormat,
+      extractKeyPoints: true,
+      extractActionItems: true,
+      extractTopics: true,
+      generateChapters: true
+    }).subscribe({
+      next: (res) => {
+        this.isGeneratingSummary = false;
+        if (res.success && res.data) {
+          this.summary = res.data;
+          this.snackBar.open('AI Summary & Insights generated successfully!', 'OK', { duration: 3000 });
+        }
+      },
+      error: (err) => {
+        this.isGeneratingSummary = false;
+        const msg = err?.error?.error?.message || 'Failed to generate summary';
+        this.snackBar.open(msg, 'Close', { duration: 4000 });
+      }
+    });
+  }
+
+  deleteSummary(): void {
+    if (!this.activeJob) return;
+    if (confirm('Are you sure you want to delete this summary?')) {
+      this.summaryService.deleteSummary(this.activeJob.id).subscribe({
+        next: () => {
+          this.summary = null;
+          this.snackBar.open('Summary deleted', 'OK', { duration: 3000 });
+        },
+        error: () => {
+          this.snackBar.open('Failed to delete summary', 'Close', { duration: 3000 });
+        }
+      });
+    }
+  }
+
+  toggleActionItem(item: ActionItemDto): void {
+    item.completed = !item.completed;
+  }
+
+  switchInsightTab(tab: 'summary' | 'key_points' | 'action_items' | 'topics' | 'chapters'): void {
+    this.activeInsightTab = tab;
   }
 
   getSegmentDisplayText(seg: TranscriptSegmentResponse): string {
