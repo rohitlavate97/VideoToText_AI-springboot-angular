@@ -30,55 +30,225 @@
   </mat-toolbar>
 
   <main class="dashboard-content">
+    <!-- Welcome Section & Action Bar -->
     <div class="welcome-section">
-      @if (currentUser$ | async; as user) {
-        <h2>Welcome back, {{ user.firstName }}!</h2>
-        <p class="subtitle">Convert, transcribe, diarize, and translate video files with AI accuracy.</p>
-      }
+      <div class="welcome-text">
+        @if (currentUser$ | async; as user) {
+          <h2>Welcome back, {{ user.firstName }}!</h2>
+          <p class="subtitle">Platform Overview: Speech-to-Text, Diarization, Translation & Subtitles.</p>
+        }
+      </div>
+      <div class="welcome-actions">
+        <button mat-stroked-button (click)="loadStats()" [disabled]="isLoadingStats" class="refresh-btn">
+          <mat-icon [class.spin]="isLoadingStats">refresh</mat-icon>
+          Refresh Stats
+        </button>
+        <button mat-raised-button color="primary" routerLink="/videos/upload">
+          <mat-icon>cloud_upload</mat-icon>
+          Upload Video
+        </button>
+      </div>
     </div>
 
-    <div class="action-grid">
-      <mat-card class="action-card highlight">
-        <mat-card-header>
-          <mat-icon mat-card-avatar color="primary">cloud_upload</mat-icon>
-          <mat-card-title>Upload Video</mat-card-title>
-          <mat-card-subtitle>Ingest MP4, MKV, AVI (up to 4 hours)</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <p>Upload videos for automated speech transcription, speaker identification, and subtitle extraction.</p>
-        </mat-card-content>
-        <mat-card-actions>
-          <button mat-raised-button color="primary" routerLink="/videos/upload">Upload Now</button>
-        </mat-card-actions>
-      </mat-card>
+    <!-- Loading Spinner -->
+    <div *ngIf="isLoadingStats" class="stats-loading">
+      <mat-spinner diameter="40"></mat-spinner>
+      <p>Aggregating platform telemetry...</p>
+    </div>
 
-      <mat-card class="action-card">
-        <mat-card-header>
-          <mat-icon mat-card-avatar>video_library</mat-icon>
-          <mat-card-title>Video Library</mat-card-title>
-          <mat-card-subtitle>Manage your uploads & transcripts</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <p>Access completed transcripts, view processing progress, and edit speaker labels.</p>
-        </mat-card-content>
-        <mat-card-actions>
-          <button mat-button color="primary" routerLink="/videos">View Library</button>
-        </mat-card-actions>
-      </mat-card>
+    <!-- Analytics Dashboard Content -->
+    <div *ngIf="!isLoadingStats" class="analytics-container">
+      <!-- 4 Top KPI Metric Cards -->
+      <div class="metric-grid">
+        <mat-card class="metric-card">
+          <div class="metric-icon bg-indigo">
+            <mat-icon>video_library</mat-icon>
+          </div>
+          <div class="metric-info">
+            <span class="metric-value">{{ stats?.totalVideos || 0 }}</span>
+            <span class="metric-label">Total Videos</span>
+          </div>
+        </mat-card>
 
-      <mat-card class="action-card">
-        <mat-card-header>
-          <mat-icon mat-card-avatar>tune</mat-icon>
-          <mat-card-title>Preferences & Engine</mat-card-title>
-          <mat-card-subtitle>Configure AI models & languages</mat-card-subtitle>
-        </mat-card-header>
-        <mat-card-content>
-          <p>Configure default language (EN, HI, MR), ASR engine, compute precision, and processing mode.</p>
-        </mat-card-content>
-        <mat-card-actions>
-          <button mat-button color="primary" routerLink="/profile">Manage Settings</button>
-        </mat-card-actions>
-      </mat-card>
+        <mat-card class="metric-card">
+          <div class="metric-icon bg-emerald">
+            <mat-icon>timer</mat-icon>
+          </div>
+          <div class="metric-info">
+            <span class="metric-value">{{ formatDuration(stats?.totalAudioDurationSeconds || 0) }}</span>
+            <span class="metric-label">Audio Processed</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="metric-card">
+          <div class="metric-icon bg-blue">
+            <mat-icon>chat</mat-icon>
+          </div>
+          <div class="metric-info">
+            <span class="metric-value">{{ formatNumber(stats?.totalTranscribedWords || 0) }}</span>
+            <span class="metric-label">Words Transcribed</span>
+          </div>
+        </mat-card>
+
+        <mat-card class="metric-card">
+          <div class="metric-icon bg-amber">
+            <mat-icon>subtitles</mat-icon>
+          </div>
+          <div class="metric-info">
+            <span class="metric-value">{{ stats?.totalExports || 0 }}</span>
+            <span class="metric-label">Files Exported</span>
+          </div>
+        </mat-card>
+      </div>
+
+      <!-- Two-Column Insight Panels -->
+      <div class="insight-grid">
+        <!-- Left: Pipeline Status & Language Distribution -->
+        <div class="left-panels">
+          <!-- Pipeline Status Card -->
+          <mat-card class="panel-card">
+            <mat-card-header>
+              <mat-card-title class="panel-title">
+                <mat-icon>donut_large</mat-icon>
+                Transcription Pipeline Status
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content class="panel-content">
+              <div class="status-summary-row">
+                <div class="status-pill status-completed">
+                  <span class="pill-count">{{ stats?.statusCounts?.['COMPLETED'] || 0 }}</span>
+                  <span class="pill-name">Completed</span>
+                </div>
+                <div class="status-pill status-processing">
+                  <span class="pill-count">{{ stats?.statusCounts?.['PROCESSING'] || 0 }}</span>
+                  <span class="pill-name">Processing</span>
+                </div>
+                <div class="status-pill status-queued">
+                  <span class="pill-count">{{ stats?.statusCounts?.['QUEUED'] || 0 }}</span>
+                  <span class="pill-name">Queued</span>
+                </div>
+                <div class="status-pill status-failed">
+                  <span class="pill-count">{{ stats?.statusCounts?.['FAILED'] || 0 }}</span>
+                  <span class="pill-name">Failed</span>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+
+          <!-- Language Distribution Card -->
+          <mat-card class="panel-card">
+            <mat-card-header>
+              <mat-card-title class="panel-title">
+                <mat-icon>translate</mat-icon>
+                Language Breakdown
+              </mat-card-title>
+            </mat-card-header>
+            <mat-card-content class="panel-content">
+              <div *ngIf="getLanguageEntries().length === 0" class="empty-state-text">
+                No transcription languages recorded yet.
+              </div>
+              <div class="language-bars" *ngIf="getLanguageEntries().length > 0">
+                <div *ngFor="let lang of getLanguageEntries()" class="lang-bar-row">
+                  <div class="lang-bar-labels">
+                    <span class="lang-name">{{ getLanguageName(lang.code) }}</span>
+                    <span class="lang-pct">{{ lang.count }} videos ({{ lang.percentage }}%)</span>
+                  </div>
+                  <mat-progress-bar mode="determinate" [value]="lang.percentage" class="lang-progress"></mat-progress-bar>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+
+        <!-- Right: Recent Activity -->
+        <div class="right-panels">
+          <mat-card class="panel-card activity-panel">
+            <mat-card-header class="activity-header">
+              <mat-card-title class="panel-title">
+                <mat-icon>history</mat-icon>
+                Recent Activity
+              </mat-card-title>
+              <a mat-button color="primary" routerLink="/videos" class="see-all-btn">
+                View All
+                <mat-icon>chevron_right</mat-icon>
+              </a>
+            </mat-card-header>
+            <mat-card-content class="panel-content">
+              <div *ngIf="!stats?.recentActivity || stats?.recentActivity?.length === 0" class="empty-activity">
+                <mat-icon>videocam_off</mat-icon>
+                <p>No recent transcription activities found.</p>
+                <button mat-raised-button color="primary" routerLink="/videos/upload">Upload Your First Video</button>
+              </div>
+
+              <div *ngIf="stats && stats.recentActivity && stats.recentActivity.length > 0" class="activity-list">
+                <div *ngFor="let item of stats.recentActivity" class="activity-item">
+                  <div class="activity-main">
+                    <span class="activity-title" [title]="item.filename">{{ item.filename }}</span>
+                    <div class="activity-meta">
+                      <span class="status-badge" [ngClass]="'status-' + (item.status ? item.status.toLowerCase() : 'queued')">
+                        {{ item.status }}
+                      </span>
+                      <span class="meta-lang">{{ item.language | uppercase }}</span>
+                      <span class="meta-duration" *ngIf="item.durationSeconds > 0">
+                        {{ formatDuration(item.durationSeconds) }}
+                      </span>
+                      <span class="meta-date">{{ item.createdAt | date:'shortDate' }}</span>
+                    </div>
+                  </div>
+                  <a mat-icon-button color="primary" [routerLink]="['/videos', item.videoId]" title="View Video">
+                    <mat-icon>arrow_forward</mat-icon>
+                  </a>
+                </div>
+              </div>
+            </mat-card-content>
+          </mat-card>
+        </div>
+      </div>
+
+      <!-- Quick Action Cards Row -->
+      <div class="action-grid">
+        <mat-card class="action-card highlight">
+          <mat-card-header>
+            <mat-icon mat-card-avatar color="primary">cloud_upload</mat-icon>
+            <mat-card-title>Upload Video</mat-card-title>
+            <mat-card-subtitle>MP4, MKV, AVI, WebM (up to 4 hours)</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p>Upload video recordings for speech-to-text, speaker diarization, and chapter extraction.</p>
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-raised-button color="primary" routerLink="/videos/upload">Upload Now</button>
+          </mat-card-actions>
+        </mat-card>
+
+        <mat-card class="action-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>video_library</mat-icon>
+            <mat-card-title>Video Library</mat-card-title>
+            <mat-card-subtitle>Access transcripts & subtitles</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p>Search transcripts, edit timestamps, reassign speakers, and export in SRT, VTT, TXT, or JSON.</p>
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-button color="primary" routerLink="/videos">View Library</button>
+          </mat-card-actions>
+        </mat-card>
+
+        <mat-card class="action-card">
+          <mat-card-header>
+            <mat-icon mat-card-avatar>tune</mat-icon>
+            <mat-card-title>AI Engine & Languages</mat-card-title>
+            <mat-card-subtitle>Models & Privacy Policies</mat-card-subtitle>
+          </mat-card-header>
+          <mat-card-content>
+            <p>Configure Faster-Whisper, PyAnnote token, translation languages (HI, MR, ES), and Local-Only mode.</p>
+          </mat-card-content>
+          <mat-card-actions>
+            <button mat-button color="primary" routerLink="/profile">Manage Settings</button>
+          </mat-card-actions>
+        </mat-card>
+      </div>
     </div>
   </main>
 </div>
