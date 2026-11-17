@@ -13,6 +13,10 @@ public interface TranscriptionJobRepository extends JpaRepository<TranscriptionJ
 
     List<TranscriptionJob> findByUserIdOrderByCreatedAtDesc(UUID userId);
 
+    long countByUserId(UUID userId);
+
+    long countByUserIdAndStatus(UUID userId, String status);
+
     List<TranscriptionJob> findByVideoIdOrderByCreatedAtDesc(UUID videoId);
 
     Optional<TranscriptionJob> findByIdAndUserId(UUID id, UUID userId);
