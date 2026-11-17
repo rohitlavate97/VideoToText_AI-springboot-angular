@@ -56,10 +56,10 @@ class SummaryPipeline:
             elif isinstance(s, TranscriptionSegment):
                 normalized.append(
                     TranscriptSegmentInput(
-                        segment_index=idx,
+                        segment_index=s.id if s.id is not None else idx,
                         start_time=s.start_time,
                         end_time=s.end_time,
-                        speaker_label=s.speaker_label,
+                        speaker_label=s.speaker or getattr(s, "speaker_label", None),
                         text=s.text
                     )
                 )
