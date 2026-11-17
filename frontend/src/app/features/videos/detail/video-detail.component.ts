@@ -65,6 +65,7 @@ import {
 })
 export class VideoDetailComponent implements OnInit, OnDestroy {
   @ViewChild('videoElement') videoRef?: ElementRef<HTMLVideoElement>;
+  @ViewChild('waveformCanvas') waveformRef?: ElementRef<HTMLCanvasElement>;
 
   private readonly route = inject(ActivatedRoute);
   private readonly router = inject(Router);
@@ -87,6 +88,12 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
   progressEvent: JobProgressEvent | null = null;
   searchQuery = '';
   selectedSpeakerFilter: string | null = null;
+
+  // Playback & Waveform State
+  currentTime = 0;
+  duration = 0;
+  isPlaying = false;
+  playbackSpeed = 1.0;
 
   // Subtitles & Exports State
   subtitles: SubtitleResponse[] = [];
@@ -520,8 +527,106 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
   seekTo(seconds: number): void {
     if (this.videoRef?.nativeElement) {
       this.videoRef.nativeElement.currentTime = seconds;
+      this.currentTime = seconds;
       this.videoRef.nativeElement.play().catch(() => {});
+      this.isPlaying = true;
+      this.drawWaveform();
     }
+  }
+
+  togglePlayPause(): void {
+    if (!this.videoRef?.nativeElement) return;
+    const v = this.videoRef.nativeElement;
+    if (v.paused) {
+      v.play().catch(() => {});
+      this.isPlaying = true;
+    } else {
+      v.pause();
+      this.isPlaying = false;
+    }
+  }
+
+  skipTime(deltaSeconds: number): void {
+    if (!this.videoRef?.nativeElement) return;
+    const v = this.videoRef.nativeElement;
+    const total = this.duration || v.duration || (this.video?.durationSeconds || 0);
+    const target = Math.max(0, Math.min(total, v.currentTime + deltaSeconds));
+    v.currentTime = target;
+    this.currentTime = target;
+    this.drawWaveform();
+  }
+
+  setPlaybackSpeed(speed: number): void {
+    if (!this.videoRef?.nativeElement) return;
+    this.playbackSpeed = speed;
+    this.videoRef.nativeElement.playbackRate = speed;
+  }
+
+  onVideoTimeUpdate(): void {
+    if (this.videoRef?.nativeElement) {
+      this.currentTime = this.videoRef.nativeElement.currentTime;
+      this.isPlaying = !this.videoRef.nativeElement.paused;
+      this.drawWaveform();
+    }
+  }
+
+  onVideoLoadedMetadata(): void {
+    if (this.videoRef?.nativeElement) {
+      this.duration = this.videoRef.nativeElement.duration || (this.video?.durationSeconds || 0);
+      this.drawWaveform();
+    }
+  }
+
+  onWaveformClick(event: MouseEvent): void {
+    const canvas = this.waveformRef?.nativeElement;
+    const total = this.duration || (this.video?.durationSeconds || 0);
+    if (!canvas || total <= 0) return;
+    const rect = canvas.getBoundingClientRect();
+    const clickX = event.clientX - rect.left;
+    const ratio = Math.max(0, Math.min(1, clickX / rect.width));
+    const targetSeconds = ratio * total;
+    this.seekTo(targetSeconds);
+  }
+
+  drawWaveform(): void {
+    const canvas = this.waveformRef?.nativeElement;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
+    const width = canvas.width = canvas.parentElement?.clientWidth || 500;
+    const height = canvas.height = 48;
+    ctx.clearRect(0, 0, width, height);
+
+    const totalBars = Math.floor(width / 4);
+    const totalDuration = this.duration || (this.video?.durationSeconds || 120);
+
+    for (let i = 0; i < totalBars; i++) {
+      const barTime = (i / totalBars) * totalDuration;
+      const hasSpeech = this.segments.some(s => barTime >= s.startTime && barTime <= s.endTime);
+
+      const seed = Math.sin(i * 12.9898) * 43758.5453;
+      const pseudoRand = seed - Math.floor(seed);
+      const amp = hasSpeech ? 0.35 + pseudoRand * 0.55 : 0.1 + pseudoRand * 0.12;
+
+      const barHeight = Math.max(4, height * amp);
+      const x = i * 4;
+      const y = (height - barHeight) / 2;
+
+      if (barTime <= this.currentTime) {
+        ctx.fillStyle = hasSpeech ? '#4f46e5' : '#818cf8';
+      } else {
+        ctx.fillStyle = hasSpeech ? '#cbd5e1' : '#f1f5f9';
+      }
+
+      ctx.beginPath();
+      ctx.roundRect(x, y, 2.5, barHeight, 1.5);
+      ctx.fill();
+    }
+  }
+
+  isSegmentActive(seg: TranscriptSegmentResponse): boolean {
+    return this.currentTime >= seg.startTime && this.currentTime <= seg.endTime;
   }
 
   get filteredSegments(): TranscriptSegmentResponse[] {

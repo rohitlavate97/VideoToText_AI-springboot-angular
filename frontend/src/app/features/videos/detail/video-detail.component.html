@@ -88,6 +88,10 @@
             preload="metadata"
             class="video-player"
             [src]="video.downloadUrl"
+            (timeupdate)="onVideoTimeUpdate()"
+            (loadedmetadata)="onVideoLoadedMetadata()"
+            (play)="isPlaying = true"
+            (pause)="isPlaying = false"
           >
             Your browser does not support HTML5 video preview.
           </video>
@@ -96,6 +100,55 @@
             <p>Video streaming link is unavailable</p>
           </div>
         </div>
+
+        <!-- Audio Waveform Visualizer & Playback Control Bar -->
+        <mat-card class="waveform-card" *ngIf="video.downloadUrl">
+          <div class="waveform-header">
+            <div class="waveform-title-row">
+              <span class="waveform-label">
+                <mat-icon>graphic_eq</mat-icon>
+                Audio Waveform
+              </span>
+              <span class="time-readout">
+                {{ formatSeconds(currentTime) }} / {{ formatSeconds(duration || video.durationSeconds) }}
+              </span>
+            </div>
+
+            <!-- Playback Quick Controls -->
+            <div class="player-quick-controls">
+              <button mat-icon-button (click)="skipTime(-5)" title="Rewind 5s">
+                <mat-icon>replay_5</mat-icon>
+              </button>
+              <button mat-icon-button color="primary" (click)="togglePlayPause()" [title]="isPlaying ? 'Pause' : 'Play'">
+                <mat-icon>{{ isPlaying ? 'pause_circle_filled' : 'play_circle_filled' }}</mat-icon>
+              </button>
+              <button mat-icon-button (click)="skipTime(5)" title="Forward 5s">
+                <mat-icon>forward_5</mat-icon>
+              </button>
+
+              <div class="speed-selector">
+                <button
+                  *ngFor="let speed of [0.75, 1.0, 1.25, 1.5, 2.0]"
+                  type="button"
+                  class="speed-chip"
+                  [class.active]="playbackSpeed === speed"
+                  (click)="setPlaybackSpeed(speed)"
+                >
+                  {{ speed }}x
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Interactive HTML5 Canvas Waveform -->
+          <div class="waveform-canvas-wrapper" (click)="onWaveformClick($event)" title="Click anywhere on waveform to seek">
+            <canvas #waveformCanvas class="waveform-canvas" height="48"></canvas>
+            <div
+              class="waveform-playhead"
+              [style.left.%]="(duration || video.durationSeconds) > 0 ? (currentTime / (duration || video.durationSeconds)) * 100 : 0"
+            ></div>
+          </div>
+        </mat-card>
 
         <!-- Video Chapters Navigation Bar -->
         <mat-card class="chapters-nav-card" *ngIf="summary && summary.chapters && summary.chapters.length > 0">
@@ -362,6 +415,7 @@
                 *ngFor="let seg of filteredSegments"
                 class="segment-item"
                 [class.editing]="editingSegmentId === seg.id"
+                [class.active-segment]="isSegmentActive(seg)"
                 (click)="editingSegmentId !== seg.id ? seekTo(seg.startTime) : null"
               >
                 <!-- Display Mode -->
