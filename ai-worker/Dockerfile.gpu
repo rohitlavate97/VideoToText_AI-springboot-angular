@@ -1,0 +1,64 @@
+# =============================================================================
+# VideoToText AI — Production AI Worker (NVIDIA GPU / CUDA Accelerated)
+# =============================================================================
+FROM nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04 AS runtime
+
+LABEL maintainer="VideoToText AI Team"
+LABEL description="VideoToText AI Worker (NVIDIA GPU / CUDA 12 Accelerated)"
+
+WORKDIR /app
+
+ENV DEBIAN_FRONTEND=noninteractive \
+    PYTHONUNBUFFERED=1 \
+    PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONPATH=/app \
+    NVIDIA_VISIBLE_DEVICES=all \
+    NVIDIA_DRIVER_CAPABILITIES=compute,utility \
+    WORKER_CONCURRENCY=2 \
+    DEFAULT_COMPUTE_TYPE=float16 \
+    MODEL_CACHE_DIR=/app/models
+
+# Install system dependencies: Python 3.11, FFmpeg, curl, libsndfile
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    software-properties-common \
+    && add-apt-repository ppa:deadsnakes/ppa -y \
+    && apt-get update && apt-get install -y --no-install-recommends \
+    python3.11 \
+    python3.11-venv \
+    python3.11-dev \
+    python3-pip \
+    ffmpeg \
+    curl \
+    gcc \
+    libpq-dev \
+    libsndfile1 \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set default python3 to python3.11
+RUN update-alternatives --install /usr/bin/python python /usr/bin/python3.11 1 && \
+    update-alternatives --install /usr/bin/python3 python3 /usr/bin/python3.11 1
+
+# Security: Run as non-root user
+RUN groupadd -g 10001 workergroup && \
+    useradd -u 10001 -g workergroup -m -s /bin/bash workeruser
+
+# Install Python dependencies
+COPY requirements.txt .
+RUN python3 -m pip install --no-cache-dir --upgrade pip && \
+    python3 -m pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY app/ ./app/
+
+# Create work directories with proper ownership
+RUN mkdir -p /app/temp /app/models /app/logs && \
+    chown -R workeruser:workergroup /app
+
+USER workeruser
+
+EXPOSE 8081
+
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD curl -f http://localhost:8081/health || exit 1
+
+CMD ["python", "-m", "app.main"]

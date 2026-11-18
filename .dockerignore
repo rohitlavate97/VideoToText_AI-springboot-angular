@@ -1,0 +1,37 @@
+# Version control
+.git/
+.gitignore
+.gitattributes
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+
+# Build outputs
+target/
+dist/
+build/
+bin/
+node_modules/
+.angular/
+.venv/
+__pycache__/
+*.pyc
+.pytest_cache/
+coverage/
+
+# Logs and temp files
+*.log
+logs/
+temp/
+tmp/
+.DS_Store
+Thumbs.db
+
+# Documentation and Summaries
+docs/
+summary/
+.gemini/
