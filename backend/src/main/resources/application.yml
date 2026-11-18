@@ -92,6 +92,12 @@ app:
   quota:
     max-storage-per-user-bytes: ${MAX_STORAGE_PER_USER_BYTES:21474836480}
     max-concurrent-processing-jobs: ${MAX_CONCURRENT_PROCESSING_JOBS:3}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    auth-limit: ${RATE_LIMIT_AUTH:20}
+    upload-limit: ${RATE_LIMIT_UPLOAD:15}
+    default-limit: ${RATE_LIMIT_DEFAULT:120}
+    window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:60}
 
 # ---- Logging ----
 logging:
