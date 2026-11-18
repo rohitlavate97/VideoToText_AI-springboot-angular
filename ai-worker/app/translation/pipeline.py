@@ -1,4 +1,6 @@
+import concurrent.futures
 import logging
+import threading
 from typing import Callable, Dict, List, Optional
 from uuid import UUID
 from app.providers.base_provider import TranscriptionSegment
@@ -16,14 +18,14 @@ logger = logging.getLogger(__name__)
 
 class TranslationPipeline:
     """
-    Multilingual translation pipeline orchestrating batch translation across target languages
-    while strictly preserving segment timestamps, speaker attribution labels, and ordering.
+    Multilingual translation pipeline orchestrating high-throughput parallel translation
+    across target languages while strictly preserving segment timestamps, speaker attribution labels, and ordering.
     """
 
     def __init__(
         self,
         provider: Optional[BaseTranslationProvider] = None,
-        batch_size: int = 16
+        batch_size: int = 32
     ):
         self.provider = provider or TranslationEngineFactory.create_engine()
         self.batch_size = max(1, batch_size)
@@ -61,7 +63,7 @@ class TranslationPipeline:
         translated_segments: List[TranslatedSegment] = []
         quality_scores: List[float] = []
 
-        # Process in batches for performance
+        # Process in optimized batches for vectorized throughput
         for i in range(0, len(segments), self.batch_size):
             batch = segments[i:i + self.batch_size]
             source_texts = [seg.text for seg in batch]
@@ -118,17 +120,49 @@ class TranslationPipeline:
         on_language_completed: Optional[Callable[[int, int, str], None]] = None
     ) -> Dict[str, TranslationResult]:
         """
-        Translates segments into all requested target languages sequentially.
+        Translates segments into all requested target languages concurrently using parallel workers.
         """
         results: Dict[str, TranslationResult] = {}
         total = len(target_languages)
+        if total == 0:
+            return {}
 
-        for idx, lang in enumerate(target_languages, 1):
-            clean_lang = lang.lower().strip()
+        # Sequential fast-path for single language
+        if total == 1:
+            clean_lang = target_languages[0].lower().strip()
             result = self.translate_segments(job_id, segments, source_lang, clean_lang)
             results[clean_lang] = result
-
             if on_language_completed:
-                on_language_completed(idx, total, clean_lang)
+                on_language_completed(1, 1, clean_lang)
+            return results
+
+        # Concurrent parallel translation for multiple languages
+        completed_count = 0
+        lock = threading.Lock()
+        max_workers = min(total, 4)
+
+        with concurrent.futures.ThreadPoolExecutor(max_workers=max_workers) as executor:
+            future_to_lang = {
+                executor.submit(
+                    self.translate_segments,
+                    job_id,
+                    segments,
+                    source_lang,
+                    lang.lower().strip()
+                ): lang.lower().strip()
+                for lang in target_languages
+            }
+
+            for future in concurrent.futures.as_completed(future_to_lang):
+                lang = future_to_lang[future]
+                result = future.result()
+                results[lang] = result
+
+                with lock:
+                    completed_count += 1
+                    current = completed_count
+
+                if on_language_completed:
+                    on_language_completed(current, total, lang)
 
         return results
