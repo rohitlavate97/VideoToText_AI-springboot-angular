@@ -226,8 +226,8 @@ python -m app.main
 
 | Module | Framework / Tool | Test Count | Status |
 |--------|------------------|------------|--------|
-| **Backend** | Spring Boot Test / MockMvc / JUnit 5 | 82 tests | ✅ 100% Passing |
-| **AI Worker** | Pytest / Asyncio | 73 tests | ✅ 100% Passing |
+| **Backend** | Spring Boot Test / MockMvc / JUnit 5 | 88 tests | ✅ 100% Passing |
+| **AI Worker** | Pytest / Asyncio | 75 tests | ✅ 100% Passing |
 | **Frontend** | Angular CLI Build (`ng build`) | Production Bundle | ✅ 0 Errors |
 
 ---
@@ -259,8 +259,8 @@ python -m app.main
 | **Phase 11** | AI Summary & Intelligent Insights | ✅ Completed |
 | **Phase 12** | Subtitle Generation & Exports | ✅ Completed |
 | **Phase 13** | Angular Dashboard & Complete UX | ✅ Completed |
-| Phase 14 | Real-Time Processing Updates | ⬜ Next |
-| Phase 15 | Security and Reliability | ⬜ Not Started |
+| **Phase 14** | Real-Time Processing Updates | ✅ Completed |
+| Phase 15 | Security and Reliability | ⬜ Next |
 | Phase 16 | Testing and Quality Assurance | ⬜ Not Started |
 | Phase 17 | Performance Engineering and SLA Validation | ⬜ Not Started |
 | Phase 18 | Deployment and DevOps | ⬜ Not Started |
@@ -286,16 +286,17 @@ Every milestone is documented in full detail with architectural decisions, schem
 - [Phase 11 Summary: AI Summary & Intelligent Insights Engine](summary/phase11-summary.md)
 - [Phase 12 Summary: Subtitle Generation & Multi-Format Exports](summary/phase12-summary.md)
 - [Phase 13 Summary: Angular Dashboard & Complete User Experience](summary/phase13-summary.md)
+- [Phase 14 Summary: Real-Time Processing Updates](summary/phase14-summary.md)
 
 ---
 
-## Next Milestone: Phase 14 — Real-Time Processing Updates
+## Next Milestone: Phase 15 — Security and Reliability
 
 The upcoming development session will implement:
-- **WebSocket & SSE Real-Time Gateway**: Live streaming updates for transcription progress, chunk-by-chunk live transcript text streaming, and worker status.
-- **Queue Backlog & Processing Telemetry**: Real-time worker health, active queue consumers, and processing stage transitions.
-- **Frontend Live Streaming Subscriber**: Live visual progress indicators and auto-reconnecting stream subscriber.
-- **Reliability & Reconnection Handling**: Heartbeats, exponential backoff reconnection, and client state reconciliation.
+- **File Upload Security & Signature Validation**: Magic bytes verification, malware screening, path traversal protection, and isolated sandboxing.
+- **Resource Constraints & Rate Limiting**: FFmpeg CPU/memory limits, API rate limiting, and per-user storage/upload quotas.
+- **Data Lifecycle & Compliance**: Data retention policies, hard deletion cascades, and GDPR compliance.
+- **Reliability & Job Recovery**: Enhanced dead-letter queue escalation, poisoned message isolation, and unacknowledged job recovery.
 
 ---
 
@@ -304,11 +305,11 @@ The upcoming development session will implement:
 | Checkpoint Field | Value |
 |---|---|
 | **Last Session Closed** | 2026-11-18 |
-| **Completed Milestone** | **Phase 13: Angular Dashboard & Complete UX** (Dashboard analytics, canvas waveform visualizer, scrub controls, playback speeds) |
-| **Current Progress** | **14 / 20 Phases Completed** (Phase 0 through Phase 13) |
-| **Integration Test Status** | **82 / 82** Spring Boot tests passing · **73 / 73** Python AI Worker tests passing · Angular build clean |
+| **Completed Milestone** | **Phase 14: Real-Time Processing Updates** (SSE progress streaming, visual pipeline stepper, deterministic chunk progress, auto-reconnection, retry/error telemetry) |
+| **Current Progress** | **15 / 20 Phases Completed** (Phase 0 through Phase 14) |
+| **Integration Test Status** | **88 / 88** Spring Boot tests passing · **75 / 75** Python AI Worker tests passing · Angular build clean |
 | **Git Synchronization** | `develop` and `main` branches synchronized and pushed to `origin` |
-| **Next Step for Tomorrow** | **Phase 14 — Real-Time Processing Updates** (WebSocket / SSE push notifications, live transcription chunk streaming, queue backlog monitoring, and reconnection handling) |
+| **Next Step for Tomorrow** | **Phase 15 — Security and Reliability** (Secure file processing, sandboxing, upload quotas, rate limiting, and job recovery) |
 
 ---
 

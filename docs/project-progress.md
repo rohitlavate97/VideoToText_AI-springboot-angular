@@ -211,8 +211,8 @@
 | **Phase 11** | AI summary and intelligent insights | ✅ Completed |
 | **Phase 12** | Subtitle generation and exports | ✅ Completed |
 | **Phase 13** | Angular dashboard and complete user experience | ✅ Completed |
-| Phase 14 | Real-time processing updates | ⬜ Next |
-| Phase 15 | Security and reliability | ⬜ Not Started |
+| **Phase 14** | Real-time processing updates | ✅ Completed |
+| Phase 15 | Security and reliability | ⬜ Next |
 | Phase 16 | Testing and quality assurance | ⬜ Not Started |
 | Phase 17 | Performance engineering and SLA validation | ⬜ Not Started |
 | Phase 18 | Deployment and DevOps | ⬜ Not Started |
@@ -222,4 +222,4 @@
 
 ## Next Step
 
-Begin Phase 14: Real-Time Processing Updates (WebSocket / SSE push notifications, live transcription chunk streaming, queue backlog monitoring, and graceful reconnection handling).
+Begin Phase 15: Security and reliability (Secure uploaded files, validate file signatures, sandbox FFmpeg, resource limits, upload quotas, rate limiting, and dead-letter/recovery handling).

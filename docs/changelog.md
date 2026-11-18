@@ -209,3 +209,25 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Video playback enhancement controls: +/-5s skip, play/pause toggle, digital time readout, and variable playback speeds (`0.75x`, `1.0x`, `1.25x`, `1.5x`, `2.0x`).
     - Real-time active speech segment highlighting (`.active-segment`) synchronized with video playback.
     - Verified Angular production build with zero errors and zero warnings (`ng build`).
+- **Phase 14**:
+  - Event model and processing progression telemetry:
+    - Updated `ProcessingStage` enum (`RETRYING`, `CANCELLED`, `COMPLETED`, `FAILED`, etc.) and `ProcessingEvent` model with `retry_attempt`, `max_retries`, and `error_message`.
+    - Enhanced `TranscriptionJobResponse` and `JobProgressEventDto` with retry counters and failure details.
+    - `TranscriptionEventConsumer` updates job entity and persists chronological `ProcessingEventRecord` audit trail with metadata JSON.
+    - `TranscriptionService.cancelJob` broadcasts immediate `CANCELLED` completion event to active SSE subscribers.
+  - Server-Sent Events (SSE) streaming engine:
+    - `SseEmitterService` supporting 30-min subscriptions with browser reconnection hint (`retry: 3000`).
+    - Immediate state sync on connection: pushes current stage, progress, or completion immediately so clients never wait for the next async event.
+    - Scheduled keepalive heartbeats (`:keep-alive` every 25s) preventing proxy and firewall connection drops.
+    - `EventController` endpoints: `GET /api/v1/events/jobs/{jobId}` (SSE stream) and `GET /api/v1/events/jobs/{jobId}/history` (chronological audit history).
+  - Angular 17 live streaming UI & resilient subscription:
+    - Upgraded `TranscriptionService.subscribeToJobProgress` with automatic exponential backoff reconnection upon network interruption and clean unsubscription teardown.
+    - Live SSE status indicator with pulsing green dot ("Live Updates Active") and amber reconnecting badge.
+    - 5-stage visual pipeline stepper (`Audio Extraction` → `Voice Detection` → `AI Transcription` → `Speaker Identification` → `Translation & Insights`) with completed checkmarks, glowing active pulse, and pending states.
+    - Deterministic progress bar with live numerical percent readout (`activeJob.progressPercent | number:'1.1-1'`).
+    - Chunks progression breakdown: `Completed: X / Y chunks (Z remaining)`.
+    - Automatic retry alert banner and failure card with retry action.
+  - Test suites and quality assurance:
+    - Added `EventDeliveryIntegrationTest` covering SSE stream connection, progress event consumption, retry tracking, history endpoint, emitter lifecycle, and cancellation broadcasting (88/88 backend tests passing).
+    - Added schema and retry validation tests in `test_job_schema.py` (75/75 python tests passing).
+    - Clean Angular production build with zero errors and zero warnings (`ng build`).
