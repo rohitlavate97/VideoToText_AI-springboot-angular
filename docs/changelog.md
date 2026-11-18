@@ -231,3 +231,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Added `EventDeliveryIntegrationTest` covering SSE stream connection, progress event consumption, retry tracking, history endpoint, emitter lifecycle, and cancellation broadcasting (88/88 backend tests passing).
     - Added schema and retry validation tests in `test_job_schema.py` (75/75 python tests passing).
     - Clean Angular production build with zero errors and zero warnings (`ng build`).
+- **Phase 15**:
+  - Secure file processing and sandboxed execution:
+    - Deep file signature and magic bytes validation in `VideoValidator` rejecting Windows PE (`MZ`), Linux ELF, script (`#!`), and Java bytecodes (`0xCAFEBABE`) disguised with video extensions.
+    - Path traversal prevention in `SecurityPathValidator` with `sanitizeFilename()`, `validateStorageKey()`, and canonical `validatePathContainment()`.
+    - Sandboxed FFprobe and FFmpeg executions with `-nostdin`, `-protocol_whitelist file,crypto,data`, 30s timeouts with `process.destroyForcibly()`, and 2MB buffer protection.
+    - Owner-verified resource deletion with automatic S3/MinIO and database record removal.
+  - Upload quotas and resource management:
+    - `UploadQuotaService` enforcing per-user active storage quotas (`app.quota.max-storage-per-user-bytes`, default 20 GB) and concurrent active processing jobs (`app.quota.max-concurrent-processing-jobs`, default 3).
+    - `VideoRepository.sumFileSizeBytesByUserId` and `TranscriptionJobRepository.countActiveJobsByUserId` queries.
+  - API rate limiting:
+    - `RateLimitingService` and `RateLimitingFilter` implementing sliding window algorithm per authenticated user (`user:<email>`) or client IP (`ip:<address>`).
+    - Tiered limits: auth endpoints (20 req/min), upload endpoints (15 req/min), general API (120 req/min).
+    - Strict HTTP 429 compliance returning `Retry-After: 60`, `X-RateLimit-Limit`, `X-RateLimit-Remaining`, and structured `RATE_LIMIT_EXCEEDED` error response.
+  - Stuck job recovery and dead-letter handling:
+    - `JobRecoveryService` with scheduled background sweeper (`@Scheduled(fixedRate=60000)`) detecting stuck jobs older than 15 minutes, retrying up to 3 times, emitting SSE telemetry, and redispatching to RabbitMQ.
+    - Manual job recovery endpoint: `POST /api/v1/transcriptions/{jobId}/recover`.
+    - `DeadLetterConsumer` processing dead-letter messages from `transcription.dlq`, extracting `x-death` metadata, failing jobs gracefully, and emitting SSE notifications.
+    - Reliability management endpoints in `ReliabilityController`: `GET /api/v1/reliability/dead-letters`, `POST /api/v1/reliability/sweep`, and `GET /api/v1/reliability/audit-logs`.
+  - Security audit logging:
+    - Structured `SecurityAuditService` emitting `[AUDIT]` logs for uploads, multipart sessions, deletions, quota violations, rate limiting rejections, DLQ events, and stuck job recoveries.
+  - Test suites:
+    - `SecurityPathValidatorTest` (3/3 tests passing) and `SecurityIntegrationTest` (11/11 tests passing) covering executable rejections, path traversal, quotas, 429 rate limiting, dead letters, and sweeper recovery (102/102 backend tests passing).
+    - 75/75 Python AI worker tests passing.
+    - Angular production build clean with 0 errors and 0 warnings.

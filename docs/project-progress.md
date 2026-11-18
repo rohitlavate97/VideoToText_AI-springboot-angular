@@ -4,7 +4,7 @@
 
 | Field | Value |
 |-------|-------|
-| **Current Phase** | Phase 13 — Angular Dashboard and Complete User Experience |
+| **Current Phase** | Phase 15 — Security and Reliability |
 | **Phase Status** | Completed |
 | **Last Updated** | 2026-11-18 |
 
@@ -193,6 +193,30 @@
 
 ---
 
+## Phase 14 — Real-Time Processing Updates
+
+| # | Functionality | Status | Commit | Notes |
+|---|---------------|--------|--------|-------|
+| 14.1 | Pipeline stage progression events & model | ✅ Done | `de6153b` | ProcessingEvent model in worker, JobProgressEventDto & ProcessingEventRecord in backend |
+| 14.2 | Real-time SSE endpoints & heartbeat | ✅ Done | `687be01` | SseEmitterService with immediate state push, keepalive heartbeat, /api/v1/events/jobs/{jobId} |
+| 14.3 | Angular live streaming UI & auto-reconnect | ✅ Done | `2a27a43` | SSE subscription service with exponential backoff reconnect, live status pill, visual pipeline stepper |
+| 14.4 | Integration & end-to-end event delivery tests | ✅ Done | `9539311` | EventDeliveryIntegrationTest verifying end-to-end SSE delivery, historical persistence, lifecycle transitions |
+
+---
+
+## Phase 15 — Security and Reliability
+
+| # | Functionality | Status | Commit | Notes |
+|---|---------------|--------|--------|-------|
+| 15.1 | Secure file processing & sandboxed execution | ✅ Done | `3f89814` | Deep magic bytes (MZ, ELF, #!, CAFEBABE rejection), path traversal sanitization, FFmpeg/FFprobe sandboxing (-nostdin, -protocol_whitelist) |
+| 15.2 | Upload quotas & concurrency limits | ✅ Done | `436ca36` | UploadQuotaService enforcing 20GB user storage quota & 3 concurrent active processing jobs |
+| 15.3 | API rate limiting & sliding window filter | ✅ Done | `c12f1f9` | RateLimitingFilter with tiered limits (auth: 20 req/min, upload: 15 req/min, general: 120 req/min) returning HTTP 429 & Retry-After |
+| 15.4 | Stuck job recovery sweeper & dispatcher | ✅ Done | `f0bdb04` | JobRecoveryService with @Scheduled(fixedRate=60s) sweeper, retries up to 3 times, emits SSE updates, manual /recover endpoint |
+| 15.5 | Dead-letter handling & reliability diagnostics | ✅ Done | `3136b40` | DeadLetterConsumer listening to transcription.dlq, x-death header parsing, job failure fail-safe, /api/v1/reliability endpoints |
+| 15.6 | Security integration & path validation tests | ✅ Done | `4d2939f` | SecurityIntegrationTest & SecurityPathValidatorTest verifying binary rejection, path containment, quotas, 429 limits, DLQ, sweeper |
+
+---
+
 ## Phase Checklist
 
 | Phase | Description | Status |
@@ -212,8 +236,8 @@
 | **Phase 12** | Subtitle generation and exports | ✅ Completed |
 | **Phase 13** | Angular dashboard and complete user experience | ✅ Completed |
 | **Phase 14** | Real-time processing updates | ✅ Completed |
-| Phase 15 | Security and reliability | ⬜ Next |
-| Phase 16 | Testing and quality assurance | ⬜ Not Started |
+| **Phase 15** | Security and reliability | ✅ Completed |
+| Phase 16 | Testing and quality assurance | ⬜ Next |
 | Phase 17 | Performance engineering and SLA validation | ⬜ Not Started |
 | Phase 18 | Deployment and DevOps | ⬜ Not Started |
 | Phase 19 | Final release | ⬜ Not Started |
@@ -222,4 +246,4 @@
 
 ## Next Step
 
-Begin Phase 15: Security and reliability (Secure uploaded files, validate file signatures, sandbox FFmpeg, resource limits, upload quotas, rate limiting, and dead-letter/recovery handling).
+Begin Phase 16: Testing and quality assurance (Unit tests, integration tests, end-to-end tests, load testing, chaos testing, test coverage verification).
