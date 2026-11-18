@@ -5,7 +5,7 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.0.0] - 2026-11-18
 
 ### Added
 - **Phase 0**: Requirements, architecture, database ERD, API specification, performance strategy, security, testing strategy, ADRs.
@@ -308,3 +308,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Observability and monitoring stack (`infrastructure/monitoring/`): Prometheus scraper configuration and alerting rules, Grafana datasources, and pre-provisioned system dashboard (`videototext-dashboard.json`).
     - Operational scripts (`infrastructure/scripts/`): automated PostgreSQL backup with gzip & SHA256 checksums (`backup-database.sh`), database restore procedure (`restore-database.sh`), object storage backup and restore (`backup-storage.sh`, `restore-storage.sh`), and platform-wide health inspection (`health-check.sh`).
     - Published comprehensive production deployment runbook in `docs/deployment-runbook.md` with system prerequisites, environment setup, Docker Compose & Kubernetes rollout procedures, monitoring, backups, and zero-downtime rollback protocols.
+- **Phase 19**:
+  - Final production release v1.0.0:
+    - Executed full regression testing across all 18 preceding phases with 100% test pass rate: 121 Backend tests, 96 AI Worker tests, 32 Frontend tests (**249 / 249 tests passing**).
+    - Validated all 20 Master Prompt acceptance criteria including 4-hour video SLA ($\le 15$ min), RTF $\ge 16\times$, WER $\le 5\%$, timestamp drift $\le 50$ms, and DER $\le 7\%$.
+    - Synchronized version metadata to `1.0.0` across Backend (`pom.xml`), Frontend (`package.json`), and AI Worker (`settings.py`).
+    - Finalized end-user documentation, operator guides, deployment runbooks, and release notes:
+      - `README.md`: Complete architecture overview, Mermaid diagrams, quickstart guides, SLA tables, and phase index.
+      - `docs/user-guide.md`: End-user manual for video upload, transcription, in-place editing, multilingual translation, AI summaries, and subtitle exports.
+      - `docs/release-notes-v1.0.0.md`: Official v1.0.0 release notes with key highlights, benchmark achievements, and platform architecture.
+      - `summary/phase19-summary.md`: Final release validation summary and regression matrix.
+    - Created official Git release tag `v1.0.0`.

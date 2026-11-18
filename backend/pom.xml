@@ -13,7 +13,7 @@
 
     <groupId>com.videototext</groupId>
     <artifactId>videototext-backend</artifactId>
-    <version>0.1.0-SNAPSHOT</version>
+    <version>1.0.0</version>
     <name>VideoToText AI Backend</name>
     <description>AI-powered video-to-text transcription platform</description>
 

@@ -13,8 +13,8 @@ class WorkerSettings(BaseSettings):
 
     # Worker Info
     WORKER_NAME: str = "videototext-ai-worker"
-    WORKER_VERSION: str = "0.1.0"
-    ENVIRONMENT: str = "development"
+    WORKER_VERSION: str = "1.0.0"
+    ENVIRONMENT: str = "production"
     LOG_LEVEL: str = "INFO"
 
     # RabbitMQ
