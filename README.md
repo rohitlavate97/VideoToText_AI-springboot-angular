@@ -617,6 +617,7 @@ This is pre-configured in our [production.nginx.conf](file:///C:/Data/Projects/V
 
 ## Documentation Index
 
+- 💼 [Business User UAT Guide](docs/business-user-uat-guide.md) — Executive onboarding, business value overview, and end-to-end testing script.
 - 💻 [Local Setup Guide](LOCAL_SETUP.md) — Step-by-step local development setup, prerequisites, and troubleshooting.
 - 📖 [User Guide](docs/user-guide.md) — Complete operator manual for video upload, editing, translation, and exports.
 - 🚀 [Deployment Runbook](docs/deployment-runbook.md) — Step-by-step production rollout, backup/restore, and rollback procedures.
