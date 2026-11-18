@@ -1,0 +1,50 @@
+global:
+  scrape_interval: 15s
+  evaluation_interval: 15s
+
+rule_files:
+  - "/etc/prometheus/prometheus-alerts.yml"
+
+scrape_configs:
+  # ---------------------------------------------------------------------------
+  # VideoToText AI — Spring Boot 3.5 Backend (Micrometer Actuator)
+  # ---------------------------------------------------------------------------
+  - job_name: "videototext-backend"
+    metrics_path: "/actuator/prometheus"
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["backend:8080"]
+        labels:
+          application: "videototext-backend"
+          environment: "production"
+
+  # ---------------------------------------------------------------------------
+  # VideoToText AI — Python AI Worker
+  # ---------------------------------------------------------------------------
+  - job_name: "videototext-ai-worker"
+    metrics_path: "/metrics"
+    scrape_interval: 10s
+    static_configs:
+      - targets: ["ai-worker:8081"]
+        labels:
+          application: "videototext-ai-worker"
+          environment: "production"
+
+  # ---------------------------------------------------------------------------
+  # RabbitMQ Management Metrics
+  # ---------------------------------------------------------------------------
+  - job_name: "rabbitmq"
+    metrics_path: "/metrics"
+    static_configs:
+      - targets: ["rabbitmq:15672"]
+        labels:
+          application: "rabbitmq"
+
+  # ---------------------------------------------------------------------------
+  # Node & Host Hardware Exporter
+  # ---------------------------------------------------------------------------
+  - job_name: "node-exporter"
+    static_configs:
+      - targets: ["node-exporter:9100"]
+        labels:
+          application: "node-exporter"

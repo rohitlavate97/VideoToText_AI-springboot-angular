@@ -1,0 +1,74 @@
+groups:
+  - name: videototext_alerts
+    rules:
+      # -----------------------------------------------------------------------
+      # Instance Down Alert
+      # -----------------------------------------------------------------------
+      - alert: ServiceInstanceDown
+        expr: up == 0
+        for: 1m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Service instance {{ $labels.instance }} is DOWN"
+          description: "Instance {{ $labels.instance }} of job {{ $labels.job }} has been down for more than 1 minute."
+
+      # -----------------------------------------------------------------------
+      # High CPU Alert
+      # -----------------------------------------------------------------------
+      - alert: HighCpuUsage
+        expr: system_cpu_usage{job="videototext-backend"} > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High CPU usage on {{ $labels.instance }}"
+          description: "Backend CPU utilization is above 85% for more than 5 minutes."
+
+      # -----------------------------------------------------------------------
+      # High Memory / JVM Heap Alert
+      # -----------------------------------------------------------------------
+      - alert: HighJvmHeapUsage
+        expr: (jvm_memory_used_bytes{area="heap"} / jvm_memory_max_bytes{area="heap"}) > 0.85
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "High JVM Heap usage on {{ $labels.instance }}"
+          description: "JVM Heap usage is exceeding 85% for more than 5 minutes."
+
+      # -----------------------------------------------------------------------
+      # RabbitMQ Queue Backlog Alert
+      # -----------------------------------------------------------------------
+      - alert: RabbitMQQueueBacklogHigh
+        expr: rabbitmq_queue_messages_ready{queue="transcription.jobs"} > 100
+        for: 5m
+        labels:
+          severity: warning
+        annotations:
+          summary: "RabbitMQ transcription queue backlog exceeds 100 messages"
+          description: "Transcription tasks are queuing faster than worker throughput."
+
+      # -----------------------------------------------------------------------
+      # Dead Letter Queue Alert
+      # -----------------------------------------------------------------------
+      - alert: DeadLetterQueueNotEmpty
+        expr: rabbitmq_queue_messages_ready{queue="transcription.dlq"} > 0
+        for: 2m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Messages detected in RabbitMQ Dead Letter Queue"
+          description: "Failed transcription jobs have been routed to the dead letter queue."
+
+      # -----------------------------------------------------------------------
+      # High HTTP 5xx Error Rate Alert
+      # -----------------------------------------------------------------------
+      - alert: HighHttpServerErrorRate
+        expr: rate(http_server_requests_seconds_count{status=~"5.."}[5m]) / rate(http_server_requests_seconds_count[5m]) > 0.05
+        for: 3m
+        labels:
+          severity: critical
+        annotations:
+          summary: "Backend HTTP 5xx error rate exceeds 5%"
+          description: "High rate of server errors detected on {{ $labels.instance }}."
