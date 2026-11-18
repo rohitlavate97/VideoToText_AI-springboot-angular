@@ -367,8 +367,11 @@ bash infrastructure/scripts/health-check.sh
 
 ### Option B: Local Development Stack
 
+> [!TIP]
+> For a detailed walkthrough with Windows/macOS/Linux instructions, port maps, and troubleshooting tips, see the dedicated [Local Setup Guide](LOCAL_SETUP.md).
+
 <details>
-<summary><b>🛠️ Click to expand Local Development Instructions</b></summary>
+<summary><b>🛠️ Click to expand Local Development Quick Commands</b></summary>
 
 #### 1. Start Backing Services
 ```bash
@@ -614,6 +617,7 @@ This is pre-configured in our [production.nginx.conf](file:///C:/Data/Projects/V
 
 ## Documentation Index
 
+- 💻 [Local Setup Guide](LOCAL_SETUP.md) — Step-by-step local development setup, prerequisites, and troubleshooting.
 - 📖 [User Guide](docs/user-guide.md) — Complete operator manual for video upload, editing, translation, and exports.
 - 🚀 [Deployment Runbook](docs/deployment-runbook.md) — Step-by-step production rollout, backup/restore, and rollback procedures.
 - 🏷️ [Release Notes v1.0.0](docs/release-notes-v1.0.0.md) — Official release notes and architectural highlights.
