@@ -14,9 +14,15 @@ class AudioExtractor:
     16kHz sample rate, 1 channel (mono), 16-bit linear PCM WAV, with EBU R128 loudness normalization.
     """
 
-    def __init__(self, ffmpeg_path: str = "ffmpeg", target_lufs: float = -16.0):
+    def __init__(
+        self,
+        ffmpeg_path: str = "ffmpeg",
+        target_lufs: float = -16.0,
+        threads: Optional[int] = None
+    ):
         self.ffmpeg_path = ffmpeg_path
         self.target_lufs = target_lufs
+        self.threads = threads or min(os.cpu_count() or 4, 8)
 
     def extract_audio(
         self,
@@ -26,6 +32,7 @@ class AudioExtractor:
     ) -> str:
         """
         Extracts 16kHz mono audio from video file and optionally applies EBU R128 loudness normalization.
+        Uses multi-threaded decoding and optimized I/O buffers for high-throughput performance.
         """
         if not os.path.exists(video_path):
             raise FileNotFoundError(f"Source video file not found: {video_path}")
@@ -33,6 +40,17 @@ class AudioExtractor:
         if not output_wav_path:
             base, _ = os.path.splitext(video_path)
             output_wav_path = f"{base}_audio_16k_norm.wav"
+
+        # Fast path: If source is already a 16kHz 16-bit mono WAV, avoid redundant re-encoding
+        if video_path.lower().endswith(".wav") and os.path.exists(video_path):
+            try:
+                with wave.open(video_path, "rb") as wf:
+                    if wf.getnchannels() == 1 and wf.getframerate() == 16000 and wf.getsampwidth() == 2 and not normalize:
+                        logger.info("Source is already 16kHz mono WAV; skipping re-encoding: %s", video_path)
+                        shutil.copyfile(video_path, output_wav_path)
+                        return output_wav_path
+            except Exception:
+                pass
 
         ffmpeg_cmd = shutil.which(self.ffmpeg_path) or self.ffmpeg_path
 
@@ -45,9 +63,10 @@ class AudioExtractor:
 
         try:
             logger.info(
-                "Extracting & normalizing audio from '%s' to '%s' (normalize=%s, target_lufs=%.1f)...",
+                "Extracting & normalizing audio from '%s' to '%s' (threads=%d, normalize=%s, target_lufs=%.1f)...",
                 video_path,
                 output_wav_path,
+                self.threads,
                 normalize,
                 self.target_lufs
             )
@@ -55,6 +74,7 @@ class AudioExtractor:
                 ffmpeg_cmd,
                 "-nostdin",
                 "-protocol_whitelist", "file,crypto,data",
+                "-threads", str(self.threads),
                 "-y",  # overwrite output
                 "-i", video_path,
                 "-vn",  # disable video
@@ -62,6 +82,7 @@ class AudioExtractor:
                 "-af", audio_filter,
                 "-ar", "16000",  # 16 kHz
                 "-ac", "1",  # mono
+                "-bufsize", "64M",
                 output_wav_path
             ]
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=180)

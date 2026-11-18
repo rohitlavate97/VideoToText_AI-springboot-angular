@@ -23,9 +23,68 @@ class VADChunker:
     with configurable overlap to prevent clipping boundary phonemes.
     """
 
-    def __init__(self, max_chunk_duration: int = 600, overlap_seconds: float = 1.0):
+    def __init__(
+        self,
+        max_chunk_duration: int = 600,
+        overlap_seconds: float = 1.0,
+        silence_search_window: float = 6.0,
+        energy_threshold_rms: float = 0.015
+    ):
         self.max_chunk_duration = max_chunk_duration
         self.overlap_seconds = overlap_seconds
+        self.silence_search_window = silence_search_window
+        self.energy_threshold_rms = energy_threshold_rms
+
+    def find_optimal_split_point(
+        self,
+        wav_path: str,
+        target_time: float,
+        total_duration: float
+    ) -> float:
+        """
+        Locates the best split point near target_time by finding speech silence gaps,
+        ensuring audio is split during pauses rather than mid-word.
+        """
+        if target_time >= total_duration:
+            return total_duration
+
+        half_window = self.silence_search_window / 2.0
+        start_search = max(0.0, target_time - half_window)
+        end_search = min(total_duration, target_time + half_window)
+
+        # Fast WAV sample energy inspection
+        try:
+            with wave.open(wav_path, "rb") as wf:
+                framerate = wf.getframerate()
+                sampwidth = wf.getsampwidth()
+                start_frame = int(start_search * framerate)
+                total_search_frames = int((end_search - start_search) * framerate)
+
+                wf.setpos(start_frame)
+                raw_bytes = wf.readframes(total_search_frames)
+
+                if sampwidth == 2 and raw_bytes:
+                    import struct
+                    fmt = f"<{len(raw_bytes)//2}h"
+                    samples = struct.unpack(fmt, raw_bytes)
+                    hop_size = int(framerate * 0.1)  # 100ms frames
+                    min_energy = float("inf")
+                    best_time = target_time
+
+                    for i in range(0, len(samples) - hop_size, hop_size):
+                        sub = samples[i:i + hop_size]
+                        sum_sq = sum(s * s for s in sub)
+                        rms = (sum_sq / len(sub)) ** 0.5
+                        if rms < min_energy:
+                            min_energy = rms
+                            best_time = start_search + (i / float(framerate))
+                            if min_energy < 150:  # Clear silence found
+                                break
+                    return round(best_time, 2)
+        except Exception as e:
+            logger.debug("Silence boundary search fallback to fixed split point: %s", e)
+
+        return round(target_time, 2)
 
     def get_audio_duration(self, wav_path: str) -> float:
         """Calculates total audio duration in seconds from WAV header."""
@@ -82,13 +141,22 @@ class VADChunker:
                 )
             ]
 
-        # Multi-chunk segmentation with overlap window
+        # Multi-chunk segmentation with speech-boundary silence alignment
         chunks: List[AudioChunk] = []
         current_start = 0.0
         chunk_idx = 0
 
         while current_start < duration:
-            current_end = min(duration, current_start + self.max_chunk_duration)
+            nominal_end = min(duration, current_start + self.max_chunk_duration)
+            if nominal_end < duration:
+                # Seek nearby pause to cut without truncating words
+                current_end = self.find_optimal_split_point(wav_path, nominal_end, duration)
+                # Safeguard: ensure forward progress of at least 60 seconds
+                if current_end <= current_start + 60.0:
+                    current_end = nominal_end
+            else:
+                current_end = duration
+
             chunk_overlap = overlap if chunk_idx > 0 else 0.0
             actual_start = max(0.0, current_start - chunk_overlap)
             chunk_duration = round(current_end - actual_start, 2)
