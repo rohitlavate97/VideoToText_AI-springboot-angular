@@ -3,7 +3,7 @@
 > Enterprise-grade, AI-powered platform converting long-form video media (up to 4 hours) into structured, searchable, editable transcripts with speaker diarization, multilingual translation, executive summaries, and multi-format subtitle exports.
 
 [![Release](https://img.shields.io/badge/Release-v1.0.0%20Production-success)](docs/release-notes-v1.0.0.md)
-[![Platform Tests](https://img.shields.io/badge/Platform%20Tests-249%2F249%20Passing%20(100%25)-brightgreen)](#test-verification)
+[![Platform Tests](https://img.shields.io/badge/Platform%20Tests-249%2F249%20Passing%20(100%25)-brightgreen)](#test-verification-suite)
 [![Backend](https://img.shields.io/badge/Backend-Spring%20Boot%203.5.0%20(Java%2021)-orange)](#system-architecture)
 [![Frontend](https://img.shields.io/badge/Frontend-Angular%2017%20Material-red)](#system-architecture)
 [![AI Worker](https://img.shields.io/badge/AI%20Worker-Python%203.11%20%7C%20faster--whisper-blue)](#system-architecture)
@@ -13,44 +13,61 @@
 
 ---
 
-## Table of Contents
+## Interactive Quick Navigation
 
-- [Overview](#overview)
-- [System Architecture](#system-architecture)
-- [10-Stage Video Processing Pipeline](#10-stage-video-processing-pipeline)
-- [Key Platform Features](#key-platform-features)
-- [Performance Benchmarks & SLA Validation](#performance-benchmarks--sla-validation)
-- [Repository Structure](#repository-structure)
-- [Quick Start Guide](#quick-start-guide)
-  - [Option A: Production Docker Compose](#option-a-production-docker-compose)
-  - [Option B: Local Development Stack](#option-b-local-development-stack)
-- [Production Deployment & Kubernetes](#production-deployment--kubernetes)
-- [Observability & Monitoring](#observability--monitoring)
-- [REST API Reference](#rest-api-reference)
-- [Test Verification Suite](#test-verification-suite)
-- [Phase Implementation History (Phases 0 — 19)](#phase-implementation-history-phases-0--19)
-- [Documentation Index](#documentation-index)
-- [License](#license)
+| 🚀 [Quick Start](#quick-start-guide) | 🏗️ [Architecture](#system-architecture) | ⏱️ [10-Stage Pipeline](#10-stage-video-processing-pipeline) | 🖥️ [Interactive UI](#interactive-ui-showcase) |
+|---|---|---|---|
+| 📊 [SLA Benchmarks](#performance-benchmarks--sla-validation) | 📡 [API Reference](#rest-api-reference) | 🧪 [Tests (249/249)](#test-verification-suite) | 📖 [Docs Index](#documentation-index) |
 
 ---
 
 ## Overview
 
-**VideoToText AI** is an end-to-end, asynchronous platform engineered to solve the technical challenges of long-form video transcription and comprehension:
-- Handles **up to 4 hours (240 minutes)** of high-definition video and files **up to 10 GB**.
-- Processes a 4-hour video end-to-end in **under 11 minutes** on modern cloud GPUs (exceeding the strict 15-minute engineering SLA).
-- Delivers real-time progress updates directly to the web client via **Server-Sent Events (SSE)**.
-- Provides an **interactive in-place transcript editor** synchronized with an HTML5 video player and canvas audio waveform scrubber.
-- Automatically isolates speakers via **Speaker Diarization** (PyAnnote Audio 3.1) and aligns words down to millisecond precision.
-- Supports **multilingual neural translation** (English, Hindi, Marathi, Spanish, French, German) with strict Devanagari Unicode preservation.
-- Generates **AI executive insights**, action item checklists with speaker attribution, and video chapter markers.
-- Exports industry-standard subtitle formats (**SRT, WebVTT, Plain Text, Structured JSON**).
+**VideoToText AI** is an asynchronous microservices platform engineered to solve the real-world performance, security, and scalability challenges of long-form media processing:
+
+- 🎬 **Massive Scale**: Processes high-definition videos up to **4 hours (240 minutes)** and files up to **10 GB**.
+- ⚡ **Validated Speed**: Transcribes and processes a 4-hour video in **10.88 minutes** on NVIDIA A10G GPUs (SLA target: $\le 15$ min, Real-Time Factor: **0.0453** / **22× real-time**).
+- 📡 **Real-Time Streaming**: Live visual pipeline updates broadcast via **Server-Sent Events (SSE)**.
+- 👥 **Speaker Diarization**: Isolates individual speakers (`SPEAKER_00`, `SPEAKER_01`) via PyAnnote Audio 3.1 with cross-chunk centroid reconciliation.
+- 🌐 **Multilingual Translation**: Neural translation into **Hindi (`[HI]`)**, **Marathi (`[MR]`)**, Spanish, French, and German with strict Devanagari Unicode preservation.
+- ✏️ **Interactive In-Place Editor**: Click-to-seek video player, word-level audio synchronization, speaker renaming, and audit revision history.
+- 📈 **Interactive Audio Waveform**: HTML5 Canvas waveform scrubber with variable speed controls (`0.75x` – `2.0x`).
+- 🤖 **Executive AI Insights**: Automated chapter markers, key point extractions, and speaker-attributed action items.
+- 📝 **Multi-Format Subtitle Export**: Precision monotonic subtitle exports in **SRT, WebVTT (with voice tags), Plain Text, and JSON**.
+
+---
+
+## Interactive UI Showcase
+
+```
++---------------------------------------------------------------------------------------------------------+
+|  VideoToText AI  |  [Dashboard]  [Video Library]  [Analytics]                     [User Profile: Rohit v] |
++---------------------------------------------------------------------------------------------------------+
+|                                                                                                         |
+|  < VIDEO PLAYER >                              |  < INTERACTIVE TRANSCRIPT EDITOR >                     |
+|  +------------------------------------------+  |  Language: [ Original (EN) ] [ हिन्दी (HI) ] [ मराठी ] |
+|  |                                          |  |  Speakers: [ All (3) ] [ Dr. Sharma ] [ Alex ]        |
+|  |        [ HTML5 Video Preview ]           |  |  Search:   [ Find keywords...              ] [Q]      |
+|  |                                          |  |                                                        |
+|  |  Playhead: 00:14:32 / 04:00:00           |  |  00:14:28 - 00:14:35  [Dr. Sharma]                     |
+|  +------------------------------------------+  |  "The neural acoustic model performs VAD chunking     |
+|                                                |   before passing tensors to CTranslate2." [Edit] [Del] |
+|  < CANVAS AUDIO WAVEFORM SCRUBBER >            |                                                        |
+|  ||||||||||||||||||||||||| | | ||||||||||||||  |  00:14:36 - 00:14:42  [Alex]                           |
+|  [<< 5s] [ Play / Pause ] [5s >>] [Speed: 1.5x]|  "What is the measured real-time factor on A10G?"      |
+|                                                |                                                        |
+|  < REAL-TIME SSE PROCESSING STEPPER >          |  < EXECUTIVE AI INSIGHTS & CHAPTERS >                  |
+|  [*] Upload -> [*] Audio -> [*] VAD Chunker -> |  - Chapter 1: Introduction to Whisper Pipeline (00:00) |
+|  [*] ASR (faster-whisper) -> [*] Diarize ->    |  - Chapter 2: VRAM Benchmarks & Concurrency (14:20)    |
+|  [*] Translation -> [*] AI Summary -> [DONE]   |  - [Action Item] Dr. Sharma to optimize beam_size (Alex)|
++---------------------------------------------------------------------------------------------------------+
+```
 
 ---
 
 ## System Architecture
 
-VideoToText AI implements an asynchronous, decoupled event-driven microservices architecture:
+VideoToText AI implements an asynchronous, decoupled, event-driven microservices architecture:
 
 ```mermaid
 flowchart TD
@@ -71,18 +88,70 @@ flowchart TD
     Backend -->|Live SSE Progress Streaming| Client
 ```
 
-### Core Architecture Components
+<details>
+<summary><b>🔍 Click to view Component Responsibility Breakdown</b></summary>
 
-| Component | Technology | Role & Responsibilities |
+| Component | Technology | Primary Responsibilities |
 |---|---|---|
-| **Web Frontend** | Angular 17.3, TypeScript, Angular Material | Standalone components, reactive forms, interactive in-place transcript editor, live SSE visual pipeline stepper, HTML5 audio waveform scrubbing. |
-| **Backend API** | Spring Boot 3.5.0, Java 21, Spring Security 6 | REST API endpoints, JWT HMAC-SHA512 auth, Flyway migrations (V1–V15), S3 chunked uploads, sliding-window rate limiting, user quotas, stuck job recovery sweeper. |
-| **AI Worker** | Python 3.11, faster-whisper, PyAnnote, FFmpeg | Speech-to-text inference, VAD chunking, GPU detection with CPU int8 fallback, speaker clustering, translation, AI summaries, and multi-worker ThreadPool dispatching. |
+| **Web Frontend** | Angular 17.3, TypeScript, Angular Material | Standalone components, reactive forms, in-place transcript editor, live SSE visual pipeline stepper, HTML5 audio waveform canvas scrubber. |
+| **Backend API** | Spring Boot 3.5.0, Java 21, Spring Security 6 | REST API endpoints, JWT HMAC-SHA512 authentication, Flyway migrations (V1–V15), S3 chunked uploads, sliding-window rate limiting, user quotas, stuck job sweeper. |
+| **AI Worker** | Python 3.11, faster-whisper, PyAnnote, FFmpeg | Speech-to-text inference, VAD chunking, GPU detection with CPU int8 fallback, speaker clustering, translation, AI summaries, multi-worker ThreadPool dispatching. |
 | **Message Broker** | RabbitMQ 3.13 (Management Plugin) | Asynchronous task queues (`transcription.jobs`), dead-letter queues (`transcription.dlq`), exponential backoff broker retries. |
 | **Cache & Lock Store**| Redis 7 Alpine | Distributed idempotency locks, refresh token revocation blacklist, temporary state store. |
 | **Relational DB** | PostgreSQL 16 Alpine | 15 relational tables, UUID primary keys, transcript revision audit history, indexes on owner and status. |
 | **Object Storage** | MinIO / AWS S3 SDK v2 | Direct and chunked multipart video uploads, 16kHz mono WAV audio extracts, generated subtitle archives. |
 | **Edge Gateway** | Nginx 1.27 Alpine | TLS 1.2/1.3 termination, unbuffered SSE streaming (`proxy_buffering off;`), 10 GB upload buffer, HTTP-to-HTTPS redirect. |
+
+</details>
+
+<details>
+<summary><b>🔄 Click to view Interactive Sequence Diagram (End-to-End Flow)</b></summary>
+
+```mermaid
+sequenceDiagram
+    autonumber
+    actor User as User / Browser
+    participant Nginx as Nginx Gateway
+    participant Backend as Spring Boot API
+    participant DB as PostgreSQL
+    participant S3 as MinIO / S3
+    participant Rabbit as RabbitMQ
+    participant Worker as AI Worker
+
+    User->>Nginx: POST /api/v1/videos/upload (or Multipart)
+    Nginx->>Backend: Forward video upload
+    Backend->>Backend: Validate magic bytes & duration (<= 240m)
+    Backend->>S3: Store raw video
+    Backend->>DB: Save Video entity
+    Backend-->>User: 201 Created (videoId)
+
+    User->>Backend: POST /api/v1/transcriptions (videoId, model, diarize)
+    Backend->>DB: Save TranscriptionJob (QUEUED)
+    Backend->>Rabbit: Publish Job to transcription.jobs
+    Backend-->>User: 202 Accepted (jobId)
+
+    User->>Backend: GET /api/v1/events/{jobId} (SSE stream)
+    
+    Rabbit->>Worker: Consume Job
+    Worker->>S3: Download video & Extract Audio (FFmpeg)
+    Worker->>Rabbit: Publish Progress (AUDIO_EXTRACTING, 15%)
+    Rabbit->>Backend: Ingest Progress
+    Backend-->>User: SSE Event (15%, Extracting Audio)
+
+    Worker->>Worker: VAD Chunking & faster-whisper ASR
+    Worker->>Rabbit: Publish Progress (ASR_TRANSCRIBING, 60%)
+    Backend-->>User: SSE Event (60%, ASR Inference)
+
+    Worker->>Worker: Diarization & Translation & Summarization
+    Worker->>Rabbit: Publish Final Result (COMPLETED, segments, summary)
+    Rabbit->>Backend: Ingest Result
+    Backend->>DB: Persist segments, speakers, summary
+    Backend-->>User: SSE Event (COMPLETED, 100%)
+```
+
+</details>
+
+[⬆ Back to Top](#interactive-quick-navigation)
 
 ---
 
@@ -103,174 +172,164 @@ flowchart LR
     S9 --> S10["10. Finalization"]
 ```
 
-| # | Pipeline Stage | Underlying Technology | Optimized Latency (4hr Video) | Description |
-|:---:|---|---|:---:|---|
-| **1** | **Upload & Validation** | S3 Multipart / `VideoValidator` | 24.50s | Direct or chunked upload, magic bytes binary signature inspection, 10 GB and 240-minute constraints. |
-| **2** | **Audio Extraction** | Multi-Threaded FFmpeg | 47.20s | Converts video stream into 16kHz mono 16-bit PCM WAV with 64MB I/O buffer and zero-copy fast path. |
-| **3** | **Audio Preparation** | RMS Energy VAD Chunker | 32.10s | Evaluates silence energy dips (`find_optimal_split_point`) to split audio into chunks without mid-word cuts. |
-| **4** | **ASR Inference** | `faster-whisper` (CTranslate2) | 374.80s | GPU-accelerated greedy decoding (`beam_size=1`), thread-safe model caching, and VAD filter pruning. |
-| **5** | **Word Alignment** | Phoneme Cross-Correlation | 28.40s | Computes high-precision word-level start and end timestamps. |
-| **6** | **Speaker Diarization** | PyAnnote Audio 3.1 | 80.50s | Extracts acoustic speaker embeddings, clusters speakers, and reconciles across chunks via cosine centroids. |
-| **7** | **Translation** | Parallel Batch Translator | 41.20s | Multi-threaded segment batching translating English to Hindi, Marathi, Spanish, French, and German. |
-| **8** | **AI Summary** | Local SLM / LLM Provider | 12.30s | Generates executive overview, action item checklists with speaker attribution, and topical video chapters. |
-| **9** | **Subtitle Export** | Subtitle Serialization Engine | 3.40s | Formats transcript into SubRip (.srt), WebVTT (.vtt with voice tags), Plain Text (.txt), and JSON (.json). |
-| **10**| **Finalization** | JPA & SSE Event Broadcaster | 8.10s | Commits records to PostgreSQL, updates S3 pointers, releases locks, and broadcasts `COMPLETED` event. |
-| | **Total Pipeline Run** | **Full End-to-End Stack** | **652.50s (10.88m)** | **SLA MET: ≤ 900.0s (15 Minutes)** ✅ |
+<details open>
+<summary><b>⏱️ Click to view 10-Stage Latency Breakdown for a 4-Hour Video ($14,400$s)</b></summary>
 
----
+| # | Pipeline Stage | Technology | Time (A10G) | % of Total | Bottleneck Profile | Description |
+|:---:|---|---|:---:|:---:|---|---|
+| **1** | **Upload & Validation** | S3 Multipart / `VideoValidator` | 24.50s | 3.75% | Network / Disk I/O | Direct/chunked upload, binary magic bytes check, 10 GB & 240m ceiling. |
+| **2** | **Audio Extraction** | Multi-Threaded FFmpeg | 47.20s | 7.23% | CPU (Optimized) | Video decode to 16kHz mono WAV with 64MB buffer and zero-copy fast path. |
+| **3** | **Audio Preparation** | RMS Energy VAD Chunker | 32.10s | 4.92% | CPU (Energy Dips) | Splits audio on natural silence gaps (`find_optimal_split_point`). |
+| **4** | **ASR Inference** | `faster-whisper` (CTranslate2) | 374.80s | 57.44% | GPU Compute | Greedy decoding (`beam_size=1`), model caching, VAD pruning. |
+| **5** | **Word Alignment** | Phoneme Cross-Correlation | 28.40s | 4.35% | CPU / GPU | Computes word-level start/end timestamps with millisecond accuracy. |
+| **6** | **Speaker Diarization** | PyAnnote Audio 3.1 | 80.50s | 12.34% | GPU Embeddings | Extracts acoustic vectors, clusters speakers, and aligns centroids. |
+| **7** | **Translation** | Parallel Batch Translator | 41.20s | 6.31% | CPU / GPU | Multi-threaded translation into Hindi, Marathi, Spanish, French, German. |
+| **8** | **AI Summary** | Local SLM / LLM Provider | 12.30s | 1.89% | LLM Inference | Generates executive summary, action items, and topical chapters. |
+| **9** | **Subtitle Export** | Subtitle Engine | 3.40s | 0.52% | Disk I/O | Generates strictly monotonic SRT, WebVTT (`<v Speaker>`), TXT, and JSON. |
+| **10**| **Finalization** | JPA & SSE Event Broadcaster | 8.10s | 1.24% | Network / DB | Persists database records, updates S3 pointers, broadcasts `COMPLETED`. |
+| | **TOTAL PIPELINE** | **Complete Full Stack** | **652.50s** | **100%** | **SLA MET: ≤ 900.0s (15 min)** | **10.88 minutes total processing time (RTF: 0.0453)** ✅ |
 
-## Key Platform Features
+</details>
 
-### 🎙️ Speech-to-Text & Diarization
-- **faster-whisper Engine**: Powered by CTranslate2 with INT8 and FP16 quantization support.
-- **Hardware Autodetection**: Automatically uses NVIDIA CUDA GPUs when available; gracefully falls back to CPU INT8 inference with thread pooling.
-- **PyAnnote Speaker Diarization**: Identifies distinct speakers (`SPEAKER_00`, `SPEAKER_01`), associates speakers to segments by maximal temporal overlap, and reconciles speaker identities across chunk boundaries.
-
-### 🌐 Multilingual Neural Translation
-- Native support for **Hindi (`[HI]`)** and **Marathi (`[MR]`)**, along with Spanish, French, and German.
-- **Devanagari Unicode Verification**: Strictly validates Unicode ranges (`0x0900 - 0x097F`) to prevent character corruption.
-- **Synchronized Timestamps**: Translated segments strictly retain original video playback timestamps and speaker attributions.
-
-### ✏️ Interactive In-Place Transcript Editor
-- **Click-to-Seek Video Player**: Clicking any transcript word or sentence seeks HTML5 video playback to that exact second.
-- **Auto-Scroll & Active Cue Tracking**: Transcript automatically follows active speech during video playback.
-- **In-Place Segment Editing**: Edit misheard words or adjust start/end timestamps with instant validation.
-- **Immutable Revision Auditing**: Backed by `transcript_revisions` table with a frontend revision history modal.
-- **Speaker Renaming**: Rename generic speaker IDs (`SPEAKER_00`) to real names (`Dr. Sharma`), updating all occurrences.
-
-### 📊 Interactive Audio Waveform Scrubber
-- HTML5 Canvas waveform visualizer rendering audio amplitude envelopes and silence intervals.
-- Scrub and click directly on the waveform to navigate playback.
-- Variable playback speeds (`0.75x`, `1.0x`, `1.25x`, `1.5x`, `2.0x`) with frame-skipping controls (+/- 5 seconds).
-
-### 🤖 AI Summary & Chapter Navigation
-- Multi-length summary synthesis: `short`, `medium`, or `detailed` in `paragraph`, `bullet`, or `executive` formats.
-- Action items detection with speaker attribution and timestamp references.
-- Interactive chapter pills allowing one-click navigation to key topical sections.
-
-### 🛡️ Enterprise Security & Sandboxing
-- **Deep Signature Verification**: Inspects raw binary magic bytes to reject disguised Windows executables (`MZ`), Linux ELF, shell scripts (`#!`), and Java bytecodes (`0xCAFEBABE`).
-- **Sandboxed FFmpeg Execution**: Enforces `-nostdin`, `-protocol_whitelist file,crypto,data`, execution timeouts, and buffer limits.
-- **Rate Limiting**: Sliding-window rate limiter per user/IP returning RFC-compliant HTTP 429 and `Retry-After: 60`.
-- **Resource Quotas**: Limits active storage (default: 20 GB per user) and active processing jobs (default: 3 concurrent jobs).
-- **Stuck Job Recovery Sweeper**: Scheduled background daemon detecting jobs stalled for $> 15$ minutes, retrying up to 3 times before DLQ escalation.
+[⬆ Back to Top](#interactive-quick-navigation)
 
 ---
 
 ## Performance Benchmarks & SLA Validation
 
 > [!IMPORTANT]
-> **Engineering SLA Target:** Complete end-to-end processing of a 4-hour video ($14,400$ seconds) across all 10 pipeline stages in **$\le 15$ minutes ($900$ seconds)**.
+> **Engineering SLA Acceptance Target:** Complete end-to-end processing of a 4-hour video ($14,400$ seconds) across all 10 stages in **$\le 15$ minutes ($900$ seconds)**.
 
-### Hardware Benchmark Matrix (4-Hour Reference Video)
+### Hardware Comparison Matrix (4-Hour Reference Video)
 
-| Compute Hardware | VRAM / RAM | End-to-End Latency | Real-Time Factor (RTF) | Real-Time Speedup | 15-Minute SLA Status |
-|---|---|:---:|:---:|:---:|:---:|
-| **NVIDIA A10G** | 24 GB / 64 GB | **652.5s (10.88 min)** | **0.0453** | **~22.1×** | **PASSED** ✅ |
-| **NVIDIA L4** | 24 GB / 32 GB | **624.2s (10.40 min)** | **0.0433** | **~23.1×** | **PASSED** ✅ |
-| **NVIDIA RTX 4090** | 24 GB / 64 GB | **520.1s (8.67 min)** | **0.0361** | **~27.7×** | **PASSED** ✅ |
-| **NVIDIA T4** | 16 GB / 32 GB | **965.4s (16.09 min)** | **0.0670** | **~14.9×** | Exceeded (+1.1m) |
-| **16-Core CPU Node** | 0 GB / 64 GB | **2880.0s (48.00 min)** | **0.2000** | **~5.0×** | Offline Fallback |
+| Compute Hardware | VRAM / RAM | Processing Latency | Real-Time Factor (RTF) | Real-Time Speedup | 15-Minute SLA Status | Max Concurrency |
+|---|---|:---:|:---:|:---:|:---:|:---:|
+| **NVIDIA A10G** | 24 GB / 64 GB | **652.5s (10.88 min)** | **0.0453** | **~22.1×** | **PASSED** ✅ | 4 streams |
+| **NVIDIA L4** | 24 GB / 32 GB | **624.2s (10.40 min)** | **0.0433** | **~23.1×** | **PASSED** ✅ | 4 streams |
+| **NVIDIA RTX 4090** | 24 GB / 64 GB | **520.1s (8.67 min)** | **0.0361** | **~27.7×** | **PASSED** ✅ | 4 streams |
+| **NVIDIA T4** | 16 GB / 32 GB | **965.4s (16.09 min)** | **0.0670** | **~14.9×** | Exceeded (+1.1m) | 2 streams |
+| **16-Core CPU Node** | 0 GB / 64 GB | **2880.0s (48.00 min)** | **0.2000** | **~5.0×** | Offline Fallback | 1 stream |
 
-### Repeatability Latencies ($N = 10$)
+<details>
+<summary><b>📈 Click to view Statistical Latencies & Quality Metrics</b></summary>
 
+#### Multi-Run Latencies ($N = 10$ Runs on NVIDIA A10G)
 - **p50 (Median):** **652.5s (10.88 min)** — 27.5% headroom under SLA
 - **p90:** **668.2s (11.14 min)** — 25.8% headroom under SLA
 - **p95:** **676.8s (11.28 min)** — 24.8% headroom under SLA
 - **p99:** **691.4s (11.52 min)** — 23.2% headroom under SLA
 
-### Accuracy & Quality Thresholds
+#### Quality & Accuracy Benchmarks
+- **Word Error Rate (WER):** **1.8%** (Production Threshold: $\le 5.0\%$)
+- **Timestamp Drift:** **19 ms** (Production Threshold: $\le 50 \text{ ms}$)
+- **Diarization Error Rate (DER):** **4.2%** (Production Threshold: $\le 7.0\%$)
+- **Transcript Completeness:** **100.0%** (zero missing segments)
 
-| Metric | Measured Value | Production Threshold | Evaluation Methodology | Status |
-|---|:---:|:---:|---|:---:|
-| **Word Error Rate (WER)** | **1.8%** | $\le 5.0\%$ | LibriSpeech clean audio & conversational reference sets | PASSED ✅ |
-| **Timestamp Drift** | **19 ms** | $\le 50 \text{ ms}$ | High-precision phoneme cross-correlation alignment | PASSED ✅ |
-| **Diarization Error Rate (DER)** | **4.2%** | $\le 7.0\%$ | Multi-speaker conversational overlap evaluation | PASSED ✅ |
-| **Transcript Completeness** | **100.0%** | $100.0\%$ | Chunk boundary continuity & audio loss verification | PASSED ✅ |
+#### Cloud Compute Economics
+- **AWS EC2 `g5.xlarge` (A10G):** \$1.006 / hr $\rightarrow$ **\$0.182 per 4-hour video** (**\$0.0456 / audio hour**)
+- **GCP `g2-standard-4` (L4):** \$0.840 / hr $\rightarrow$ **\$0.146 per 4-hour video** (**\$0.0365 / audio hour**)
+- **Bare Metal RTX 4090:** \$0.400 / hr $\rightarrow$ **\$0.058 per 4-hour video** (**\$0.0145 / audio hour**)
 
-### Cloud Compute Cost Analysis
+</details>
 
-| Provider & Instance Type | GPU / Accelerator | Hourly Cost | 4-Hour Video Cost ($652$s) | Cost per Audio Hour |
-|---|---|:---:|:---:|:---:|
-| **AWS EC2 `g5.xlarge`** | 1× NVIDIA A10G (24 GB) | \$1.006 / hr | **\$0.182** | **\$0.0456 / hr** |
-| **GCP `g2-standard-4`** | 1× NVIDIA L4 (24 GB) | \$0.840 / hr | **\$0.146** | **\$0.0365 / hr** |
-| **Dedicated RTX 4090 Bare Metal** | 1× RTX 4090 (24 GB) | \$0.400 / hr amortized | **\$0.058** | **\$0.0145 / hr** |
+[⬆ Back to Top](#interactive-quick-navigation)
 
 ---
 
-## Repository Structure
+## Interactive Samples & Outputs
 
+<details>
+<summary><b>💬 Click to view Sample Transcript JSON Output</b></summary>
+
+```json
+{
+  "jobId": "c8b4f17a-5e82-491b-8e12-d92e8fa6d412",
+  "videoId": "92f1b402-4d2b-4fa8-b4b9-12a8ef642051",
+  "language": "en",
+  "durationSeconds": 14400.0,
+  "segments": [
+    {
+      "segmentId": "seg-0001",
+      "start": 0.0,
+      "end": 4.25,
+      "text": "Welcome to the VideoToText AI technical architecture review.",
+      "speaker": "SPEAKER_00",
+      "speakerName": "Dr. Sharma",
+      "confidence": 0.98,
+      "words": [
+        { "word": "Welcome", "start": 0.0, "end": 0.45, "probability": 0.99 },
+        { "word": "to", "start": 0.46, "end": 0.60, "probability": 0.99 },
+        { "word": "the", "start": 0.61, "end": 0.75, "probability": 0.98 },
+        { "word": "VideoToText", "start": 0.76, "end": 1.40, "probability": 0.97 },
+        { "word": "AI", "start": 1.41, "end": 1.70, "probability": 0.99 },
+        { "word": "technical", "start": 1.71, "end": 2.20, "probability": 0.96 },
+        { "word": "architecture", "start": 2.21, "end": 3.10, "probability": 0.98 },
+        { "word": "review.", "start": 3.11, "end": 4.25, "probability": 0.99 }
+      ]
+    }
+  ]
+}
 ```
-VideoToText_AI-springboot-angular/
-├── .github/
-│   └── workflows/
-│       ├── ci.yml                 # Automated CI: Maven, npm test, pytest, Docker buildx
-│       └── deploy.yml             # Automated CD: GHCR container build and publishing
-│
-├── backend/                       # Spring Boot 3.5.0 Backend REST API (Java 21)
-│   ├── src/main/java/com/videototext/
-│   │   ├── auth/                  # Authentication, JWT security & UserDetailsService
-│   │   ├── common/                # Shared DTOs, BaseEntity, GlobalExceptionHandler
-│   │   ├── config/                # Spring Security, RabbitMQ, Redis, S3, Swagger config
-│   │   ├── dashboard/             # System telemetry analytics service & endpoints
-│   │   ├── export/                # Subtitle export audit entities & repositories
-│   │   ├── reliability/           # Stuck job sweeper, dead-letter recovery & diagnostics
-│   │   ├── security/              # Path validator, rate limiter & upload quota enforcement
-│   │   ├── speaker/               # Speaker diarization entities & endpoints
-│   │   ├── subtitle/              # Subtitle formatting service (SRT, VTT, TXT, JSON)
-│   │   ├── summary/               # AI executive summary & chapter insight endpoints
-│   │   ├── transcription/         # Job orchestration, chunk stitching & SSE streaming
-│   │   ├── translation/           # Multilingual translation entities & endpoints
-│   │   ├── user/                  # User management, profiles & processing preferences
-│   │   └── video/                 # S3 multipart uploads, magic bytes check, FFprobe
-│   ├── src/main/resources/
-│   │   ├── application.yml        # Base Spring configuration
-│   │   └── db/migration/          # 15 Flyway SQL migrations (V1 through V15)
-│   ├── Dockerfile                 # Multi-stage production Dockerfile (Eclipse Temurin 21 JRE)
-│   └── pom.xml                    # Maven configuration (Java 21, Spring Boot 3.5.0)
-│
-├── frontend/                      # Angular 17.3 Single Page Application
-│   ├── src/app/
-│   │   ├── core/                  # Auth interceptor, guards, base HTTP services
-│   │   ├── features/
-│   │   │   ├── auth/              # Login & registration components
-│   │   │   ├── dashboard/         # Usage metrics & quick action cards
-│   │   │   ├── transcripts/       # In-place editor, language tabs, summary, chapters
-│   │   │   ├── users/             # Profile & preferences configuration
-│   │   │   └── videos/            # Upload dropzone, video library, HTML5 player
-│   │   └── shared/                # Waveform scrubber, confirm dialog, progress bar
-│   ├── Dockerfile                 # Multi-stage production Dockerfile (Node 20 -> Nginx 1.27)
-│   ├── nginx.conf                 # Production Nginx SPA configuration with CSP & caching
-│   └── package.json               # Angular 17 & Material dependencies
-│
-├── ai-worker/                     # Python 3.11 AI Worker Microservice
-│   ├── app/
-│   │   ├── benchmark/             # 10-stage end-to-end benchmark runner & profiling suite
-│   │   ├── consumers/             # RabbitMQ Pika consumer, exponential retry handler
-│   │   ├── processors/            # Audio extractor, VAD chunker, chunk scheduler
-│   │   ├── providers/             # faster-whisper CTranslate2, device detector
-│   │   ├── subtitles/             # Monotonic subtitle generators (SRT, VTT, TXT)
-│   │   ├── summary/               # Executive summaries, action items & chapters
-│   │   └── translation/           # Parallel batch multilingual translation engine
-│   ├── tests/                     # 96 Pytest unit, integration & benchmark tests
-│   ├── Dockerfile                 # Production CPU worker image (python:3.11-slim)
-│   ├── Dockerfile.gpu             # Production GPU worker image (CUDA 12.2.2 + cuDNN 8)
-│   └── requirements.txt           # Python dependencies
-│
-├── infrastructure/
-│   ├── docker/                    # Mirrored container definitions for all services
-│   ├── k8s/                       # 10 Kubernetes manifests (Namespace to Ingress)
-│   ├── monitoring/                # Prometheus, Alertmanager, Grafana dashboard configs
-│   ├── nginx/                     # Production edge reverse proxy with TLS 1.2/1.3
-│   └── scripts/                   # Database backup, restore, and health inspection scripts
-│
-├── docs/                          # Comprehensive technical documentation & runbooks
-├── summary/                       # 20 Phase milestone summaries (Phase 0 through Phase 19)
-├── docker-compose.yml             # Development Docker Compose (DB, RabbitMQ, Redis, MinIO)
-├── docker-compose.prod.yml        # Production Docker Compose (Complete 8-service stack)
-├── .env.production.example        # Production environment secrets template
-└── README.md                      # Project documentation overview
+
+</details>
+
+<details>
+<summary><b>📝 Click to view Exported Subtitle Samples (SRT & WebVTT)</b></summary>
+
+#### SubRip Subtitles (`.srt`)
+```srt
+1
+00:00:00,000 --> 00:00:04,250
+[Dr. Sharma]: Welcome to the VideoToText AI technical architecture review.
+
+2
+00:00:04,500 --> 00:00:08,120
+[Alex]: Today we will demonstrate the 15-minute SLA benchmarks.
 ```
+
+#### WebVTT Subtitles with Voice Tags (`.vtt`)
+```vtt
+WEBVTT - VideoToText AI Subtitles
+
+00:00:00.000 --> 00:00:04.250
+<v Dr. Sharma>Welcome to the VideoToText AI technical architecture review.
+
+00:00:04.500 --> 00:00:08.120
+<v Alex>Today we will demonstrate the 15-minute SLA benchmarks.
+```
+
+</details>
+
+<details>
+<summary><b>🤖 Click to view AI Executive Summary & Action Items Output</b></summary>
+
+```json
+{
+  "executiveSummary": "The engineering team successfully validated the 15-minute SLA target for 4-hour video processing. Benchmarks conducted on NVIDIA A10G and L4 GPUs confirmed real-time factors between 0.036 and 0.045 with a Word Error Rate of 1.8%.",
+  "keyTakeaways": [
+    "Multi-threaded FFmpeg audio extraction reduced decoding overhead by 68%.",
+    "RMS silence energy dip analysis prevented mid-word chunk boundary clipping.",
+    "Parallel segment translation delivers native Hindi and Marathi transcripts with 100% Devanagari fidelity."
+  ],
+  "actionItems": [
+    {
+      "task": "Deploy multi-worker GPU autoscaling cluster on AWS G5 instances",
+      "assignee": "Alex",
+      "timestamp": "01:24:15",
+      "completed": false
+    }
+  ],
+  "chapters": [
+    { "title": "Architecture Overview & Requirements", "startTime": 0.0, "endTime": 860.0 },
+    { "title": "GPU Scheduling & ASR Inference", "startTime": 860.0, "endTime": 4200.0 },
+    { "title": "SLA Benchmark Results & Production Rollout", "startTime": 4200.0, "endTime": 14400.0 }
+  ]
+}
+```
+
+</details>
+
+[⬆ Back to Top](#interactive-quick-navigation)
 
 ---
 
@@ -278,51 +337,51 @@ VideoToText_AI-springboot-angular/
 
 ### Option A: Production Docker Compose
 
-The fastest way to run the entire production-grade stack with all 8 microservices:
+The fastest way to launch the complete 8-service production stack:
 
 ```bash
-# 1. Clone the repository
+# 1. Clone repository
 git clone https://github.com/videototext/videototext-ai.git
 cd videototext-ai
 
-# 2. Configure production secrets
+# 2. Configure production environment
 cp .env.production.example .env.production
-# Edit .env.production to set strong passwords for POSTGRES, RABBITMQ, REDIS, and JWT_SECRET
 
 # 3. Generate self-signed TLS certificates for local HTTPS testing
 bash infrastructure/nginx/self-signed-ssl.sh
 
-# 4. Build and start all services
+# 4. Launch all 8 containers
 docker compose --env-file .env.production -f docker-compose.prod.yml up -d
 
-# 5. Verify service health
+# 5. Verify system health
 bash infrastructure/scripts/health-check.sh
 ```
 
 - **Web Application:** `https://localhost` (or `http://localhost`)
 - **Backend Swagger UI:** `http://localhost:8080/swagger-ui.html`
-- **Backend Actuator Health:** `http://localhost:8080/actuator/health`
-- **RabbitMQ Management:** `http://localhost:15672` (User/Password from `.env.production`)
-- **MinIO Storage Console:** `http://localhost:9001` (User/Password from `.env.production`)
+- **Actuator Health:** `http://localhost:8080/actuator/health`
+- **RabbitMQ Management:** `http://localhost:15672`
+- **MinIO Storage Console:** `http://localhost:9001`
 
 ---
 
 ### Option B: Local Development Stack
 
-For developers actively modifying backend, frontend, or AI worker source code:
+<details>
+<summary><b>🛠️ Click to expand Local Development Instructions</b></summary>
 
 #### 1. Start Backing Services
 ```bash
 docker compose up -d
 ```
-This spins up PostgreSQL 16 (port 5432), RabbitMQ 3.13 (ports 5672, 15672), Redis 7 (port 6379), and MinIO (ports 9000, 9001).
+Starts PostgreSQL 16 (`:5432`), RabbitMQ 3.13 (`:5672`, `:15672`), Redis 7 (`:6379`), and MinIO (`:9000`, `:9001`).
 
 #### 2. Run Spring Boot Backend (Java 21)
 ```bash
 cd backend
 mvn spring-boot:run
 ```
-Backend starts on `http://localhost:8080` and automatically runs Flyway migrations V1–V15.
+Starts at `http://localhost:8080` and automatically runs Flyway migrations V1–V15.
 
 #### 3. Run Angular Frontend (Node 20)
 ```bash
@@ -330,54 +389,51 @@ cd frontend
 npm install
 npm start
 ```
-Frontend development server starts on `http://localhost:4200` with hot-reloading.
+Starts at `http://localhost:4200` with hot reload enabled.
 
 #### 4. Run Python AI Worker (Python 3.11)
 ```bash
 cd ai-worker
 python -m venv .venv
-source .venv/bin/activate  # Or on Windows: .venv\Scripts\activate
+source .venv/bin/activate  # On Windows: .venv\Scripts\activate
 pip install -r requirements.txt
 python -m app.main
 ```
-Worker connects to RabbitMQ and starts processing transcription jobs.
+
+</details>
 
 ---
 
 ## Production Deployment & Kubernetes
 
-### Enterprise Kubernetes Deployment (`infrastructure/k8s/`)
-
-Deploy to AWS EKS, Google GKE, Azure AKS, or on-premise Kubernetes:
+Deploy to AWS EKS, Google GKE, Azure AKS, or on-premise Kubernetes clusters:
 
 ```bash
-# 1. Create dedicated namespace
+# 1. Namespace & Secrets
 kubectl apply -f infrastructure/k8s/00-namespace.yaml
-
-# 2. Apply ConfigMap and Secrets
 kubectl apply -f infrastructure/k8s/01-configmap-secrets.yaml
 
-# 3. Deploy stateful data infrastructure
+# 2. Stateful Data Infrastructure
 kubectl apply -f infrastructure/k8s/02-postgres.yaml
 kubectl apply -f infrastructure/k8s/03-rabbitmq.yaml
 kubectl apply -f infrastructure/k8s/04-redis.yaml
 kubectl apply -f infrastructure/k8s/05-minio.yaml
 
-# 4. Deploy application microservices
+# 3. Microservice Deployments
 kubectl apply -f infrastructure/k8s/06-backend.yaml
 kubectl apply -f infrastructure/k8s/07-ai-worker.yaml
 kubectl apply -f infrastructure/k8s/08-frontend.yaml
 
-# 5. Apply Ingress with TLS & SSE routing
+# 4. Ingress Routing & TLS
 kubectl apply -f infrastructure/k8s/09-ingress.yaml
 
-# 6. Verify rollout
+# 5. Rollout Verification
 kubectl rollout status deployment/backend -n videototext
 kubectl rollout status deployment/ai-worker -n videototext
 kubectl rollout status deployment/frontend -n videototext
 ```
 
-See the complete [Deployment Runbook](docs/deployment-runbook.md) for database backup/restore instructions, zero-downtime rollback protocols, and production troubleshooting.
+Refer to the complete [Deployment Runbook](docs/deployment-runbook.md) for database backup/restore procedures, zero-downtime rollback protocols, and troubleshooting.
 
 ---
 
@@ -389,14 +445,19 @@ Launch the Prometheus & Grafana telemetry stack:
 docker compose -f infrastructure/monitoring/docker-compose.monitoring.yml up -d
 ```
 
-- **Prometheus UI:** `http://localhost:9090` (Scrapes Spring Boot Micrometer metrics, worker endpoints, and RabbitMQ metrics).
-- **Grafana Dashboard:** `http://localhost:3000` (Default: `admin` / `videototext_grafana_password`).
-  - Pre-provisioned dashboard: **VideoToText AI — Production Monitoring**.
-  - Visualizes request rates, p50/p95/p99 API latencies, queue backlogs, active workers, JVM heap, CPU/GPU load, and dead-letter queue count.
+- **Prometheus UI:** `http://localhost:9090`
+- **Grafana Dashboard:** `http://localhost:3000` (`admin` / `videototext_grafana_password`)
+  - Dashboard: **VideoToText AI — Production Monitoring**
+  - Monitors throughput, p50/p95/p99 API latencies, queue backlogs, active workers, JVM heap, CPU/GPU load, and dead letters.
+
+[⬆ Back to Top](#interactive-quick-navigation)
 
 ---
 
 ## REST API Reference
+
+<details open>
+<summary><b>📡 Click to view Core API Endpoints Table</b></summary>
 
 | Domain | Method | Endpoint | Description |
 |---|:---:|---|---|
@@ -423,27 +484,64 @@ docker compose -f infrastructure/monitoring/docker-compose.monitoring.yml up -d
 | **Summary** | `GET` | `/api/v1/transcriptions/{jobId}/summary` | Retrieve AI executive summary, action items, and video chapters. |
 | **Exports** | `GET` | `/api/v1/transcriptions/{jobId}/export` | Download subtitles in `.srt`, `.vtt`, `.txt`, or `.json` formats. |
 | **Reliability**| `POST`| `/api/v1/transcriptions/{jobId}/recover` | Manually recover a stuck or unacknowledged transcription job. |
-| **Health** | `GET` | `/api/v1/health` | Service liveness probe. |
 | **Health** | `GET` | `/api/v1/health/system` | Detailed health inspection across DB, RabbitMQ, Redis, and S3. |
+
+</details>
+
+<details>
+<summary><b>💻 Click to view Interactive curl CLI Usage Examples</b></summary>
+
+```bash
+# 1. Login to obtain JWT token
+TOKEN=$(curl -s -X POST http://localhost:8080/api/v1/auth/login \
+  -H "Content-Type: application/json" \
+  -d '{"email":"user@example.com","password":"StrongPassword123!"}' \
+  | jq -r '.data.accessToken')
+
+# 2. Upload video file
+VIDEO_ID=$(curl -s -X POST http://localhost:8080/api/v1/videos/upload \
+  -H "Authorization: Bearer $TOKEN" \
+  -F "file=@presentation.mp4" \
+  | jq -r '.data.id')
+
+# 3. Trigger transcription job
+JOB_ID=$(curl -s -X POST http://localhost:8080/api/v1/transcriptions \
+  -H "Authorization: Bearer $TOKEN" \
+  -H "Content-Type: application/json" \
+  -d "{\"videoId\":\"$VIDEO_ID\",\"asrModel\":\"large-v3\",\"enableDiarization\":true,\"targetLanguages\":[\"hi\"]}" \
+  | jq -r '.data.id')
+
+# 4. Stream real-time progress via Server-Sent Events (SSE)
+curl -N http://localhost:8080/api/v1/events/$JOB_ID \
+  -H "Authorization: Bearer $TOKEN"
+
+# 5. Export Subtitles as SubRip (.srt)
+curl -s http://localhost:8080/api/v1/transcriptions/$JOB_ID/export?format=srt \
+  -H "Authorization: Bearer $TOKEN" -o subtitles.srt
+```
+
+</details>
+
+[⬆ Back to Top](#interactive-quick-navigation)
 
 ---
 
 ## Test Verification Suite
 
-All platform tiers run independent and comprehensive automated test suites with **100% pass rate**:
+All platform tiers run independent and comprehensive automated test suites with a **100% pass rate**:
 
 ```bash
-# 1. Run Spring Boot Backend Tests (121 tests)
+# 1. Spring Boot Backend Tests (121 tests)
 mvn test -f backend/pom.xml
 
-# 2. Run Python AI Worker Tests (96 tests)
+# 2. Python AI Worker Tests (96 tests)
 python -m pytest ai-worker/tests/
 
-# 3. Run Angular Frontend Tests (32 tests in headless Chrome)
+# 3. Angular Frontend Headless Tests (32 tests)
 npm test --prefix frontend -- --watch=false --browsers=ChromeHeadless
 ```
 
-### Test Pass Rate Summary
+### Complete Test Pass Matrix
 
 | Platform Layer | Test Framework | Tests Executed | Passed | Failures | Status |
 |---|---|:---:|:---:|:---:|:---:|
@@ -456,7 +554,10 @@ npm test --prefix frontend -- --watch=false --browsers=ChromeHeadless
 
 ## Phase Implementation History (Phases 0 — 19)
 
-VideoToText AI was constructed following the strict phase-wise methodology of `VideoToTextAI_Master_Development_Prompt.md`:
+VideoToText AI was engineered and delivered following the strict phase-wise methodology of `VideoToTextAI_Master_Development_Prompt.md`:
+
+<details open>
+<summary><b>📚 Click to view All 20 Phase Summaries</b></summary>
 
 - [Phase 0 Summary: Product Requirements & Architecture](summary/phase0-summary.md) — System requirements, component responsibilities, Mermaid architecture diagrams, database ERD, API specs.
 - [Phase 1 Summary: Development Environment & Repository Setup](summary/phase1-summary.md) — Multi-tier repository setup, Java 21, Angular 17, Python 3.11, Docker environment.
@@ -478,6 +579,36 @@ VideoToText AI was constructed following the strict phase-wise methodology of `V
 - [Phase 17 Summary: Performance Engineering & SLA Validation](summary/phase17-summary.md) — Validation of 4-hour video processing in **10.88 minutes** ($\le 15$ min SLA achieved).
 - [Phase 18 Summary: Deployment and DevOps](summary/phase18-summary.md) — Production Dockerfiles (JRE 21, Nginx 1.27, CUDA 12.2), `docker-compose.prod.yml`, K8s manifests, TLS gateway, Prometheus/Grafana monitoring, backup scripts.
 - [Phase 19 Summary: Final Production Release](summary/phase19-summary.md) — Final regression testing, release v1.0.0, official Git release tag `v1.0.0`.
+
+</details>
+
+---
+
+## Interactive FAQ & Troubleshooting
+
+<details>
+<summary><b>❓ Frequently Asked Questions & Troubleshooting (Click to expand)</b></summary>
+
+### Q: Does the platform require an NVIDIA GPU?
+**A:** No. While NVIDIA GPUs (such as A10G, L4, or RTX 4090) are required to achieve the $\le 15$-minute SLA for 4-hour videos, the platform features automatic hardware detection that seamlessly falls back to CPU INT8 inference with multi-core thread pooling on machines without a dedicated GPU.
+
+### Q: Why are my Server-Sent Events (SSE) timing out behind a reverse proxy?
+**A:** Most reverse proxies (such as Nginx or AWS ALB) enable response buffering by default, which breaks continuous streaming. Ensure your Nginx configuration includes:
+```nginx
+proxy_buffering off;
+proxy_cache off;
+proxy_read_timeout 24h;
+chunked_transfer_encoding on;
+```
+This is pre-configured in our [production.nginx.conf](file:///C:/Data/Projects/VideoToText_AI-springboot-angular/infrastructure/nginx/production.nginx.conf).
+
+### Q: How does the system prevent audio truncation at chunk boundaries?
+**A:** The `VADChunker` analyzes RMS energy dips to identify natural silence intervals (`find_optimal_split_point`) within a configurable window, ensuring cuts occur during speech pauses rather than mid-word.
+
+### Q: How is data privacy enforced for AI summaries?
+**A:** The summary engine supports strict privacy modes (`LOCAL_ONLY`, `CLOUD_ALLOWED`, `HYBRID`). In `LOCAL_ONLY` mode, requests to external cloud LLM APIs are strictly blocked, keeping all transcript data on-premise.
+
+</details>
 
 ---
 
