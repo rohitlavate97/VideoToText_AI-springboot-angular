@@ -22,7 +22,10 @@ class BaseJobProcessor(ABC):
         percent: float,
         message: str,
         completed_chunks: int = 0,
-        total_chunks: int = 0
+        total_chunks: int = 0,
+        retry_attempt: int = 0,
+        max_retries: int = 0,
+        error_message: Optional[str] = None
     ) -> None:
         """Dispatches progress update event to RabbitMQ."""
         if self.publisher:
@@ -32,6 +35,9 @@ class BaseJobProcessor(ABC):
                 progress_percent=min(100.0, max(0.0, percent)),
                 completed_chunks=completed_chunks,
                 total_chunks=total_chunks,
+                retry_attempt=retry_attempt,
+                max_retries=max_retries,
+                error_message=error_message,
                 message=message
             )
             self.publisher.publish_event(event)

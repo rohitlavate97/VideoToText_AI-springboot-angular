@@ -132,7 +132,16 @@ class TranscriptionConsumer:
             should_retry, delay, attempt = self.retry_handler.record_failure(job_id_str, error_msg)
 
             if should_retry:
-                # Transient error: sleep backoff and requeue
+                # Transient error: emit RETRYING event, sleep backoff and requeue
+                self.processor.emit_progress(
+                    job.job_id,
+                    ProcessingStage.RETRYING,
+                    0.0,
+                    f"Processing attempt {attempt}/{self.settings.MAX_RETRIES} failed: {error_msg}. Retrying in {delay:.1f}s...",
+                    retry_attempt=attempt,
+                    max_retries=self.settings.MAX_RETRIES,
+                    error_message=error_msg
+                )
                 if delay > 0:
                     time.sleep(delay)
                 channel.basic_nack(delivery_tag=delivery_tag, requeue=True)
@@ -142,7 +151,10 @@ class TranscriptionConsumer:
                     job.job_id,
                     ProcessingStage.FAILED,
                     100.0,
-                    f"Processing failed permanently after {attempt} attempts: {error_msg}"
+                    f"Processing failed permanently after {attempt} attempts: {error_msg}",
+                    retry_attempt=attempt,
+                    max_retries=self.settings.MAX_RETRIES,
+                    error_message=error_msg
                 )
                 failure_result = TranscriptionJobResult(
                     job_id=job.job_id,

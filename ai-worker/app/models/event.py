@@ -1,5 +1,6 @@
 from datetime import datetime, timezone
 from enum import Enum
+from typing import Optional
 from uuid import UUID
 from pydantic import BaseModel, ConfigDict, Field
 
@@ -12,6 +13,7 @@ class ProcessingStage(str, Enum):
     DIARIZING = "DIARIZING"
     TRANSLATING = "TRANSLATING"
     SUMMARIZING = "SUMMARIZING"
+    RETRYING = "RETRYING"
     COMPLETED = "COMPLETED"
     FAILED = "FAILED"
     CANCELLED = "CANCELLED"
@@ -30,5 +32,8 @@ class ProcessingEvent(BaseModel):
     progress_percent: float = Field(..., alias="progressPercent", ge=0.0, le=100.0)
     completed_chunks: int = Field(0, alias="completedChunks", ge=0)
     total_chunks: int = Field(0, alias="totalChunks", ge=0)
+    retry_attempt: int = Field(0, alias="retryAttempt", ge=0)
+    max_retries: int = Field(0, alias="maxRetries", ge=0)
+    error_message: Optional[str] = Field(None, alias="errorMessage")
     message: str = Field(..., alias="message")
     timestamp: datetime = Field(default_factory=lambda: datetime.now(timezone.utc), alias="timestamp")

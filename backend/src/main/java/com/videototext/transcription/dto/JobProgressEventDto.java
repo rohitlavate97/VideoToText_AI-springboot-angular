@@ -21,6 +21,9 @@ public class JobProgressEventDto {
     private float progressPercent;
     private int completedChunks;
     private int totalChunks;
+    private int retryAttempt;
+    private int maxRetries;
+    private String errorMessage;
     private String message;
     private Instant timestamp;
 }

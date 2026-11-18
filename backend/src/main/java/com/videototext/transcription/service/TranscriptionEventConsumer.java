@@ -49,19 +49,40 @@ public class TranscriptionEventConsumer {
         if (event.getCompletedChunks() > 0) {
             job.setCompletedChunks(event.getCompletedChunks());
         }
-        if (job.getStartedAt() == null && !"QUEUED".equalsIgnoreCase(event.getStage())) {
+        if (event.getRetryAttempt() > 0) {
+            job.setRetryCount(event.getRetryAttempt());
+        }
+        if (event.getMaxRetries() > 0) {
+            job.setMaxRetries(event.getMaxRetries());
+        }
+        if (event.getErrorMessage() != null) {
+            job.setErrorMessage(event.getErrorMessage());
+        }
+        if ("RETRYING".equalsIgnoreCase(event.getStage())) {
+            job.setStatus("RETRYING");
+        } else if (job.getStartedAt() == null && !"QUEUED".equalsIgnoreCase(event.getStage())) {
             job.setStartedAt(Instant.now());
             job.setStatus("PROCESSING");
         }
 
         jobRepository.save(job);
 
+        String metadataJson = null;
+        if (event.getRetryAttempt() > 0 || event.getErrorMessage() != null) {
+            metadataJson = String.format("{\"retryAttempt\":%d,\"maxRetries\":%d,\"errorMessage\":%s}",
+                    event.getRetryAttempt(),
+                    event.getMaxRetries(),
+                    event.getErrorMessage() != null ? "\"" + event.getErrorMessage().replace("\"", "\\\"") + "\"" : "null");
+        }
+
         // Record history in processing_events
         ProcessingEventRecord record = ProcessingEventRecord.builder()
                 .job(job)
+                .eventType(event.getStage() != null ? event.getStage() : "PROGRESS")
                 .stage(event.getStage())
                 .progressPercent(event.getProgressPercent())
                 .message(event.getMessage())
+                .metadataJson(metadataJson)
                 .createdAt(event.getTimestamp() != null ? event.getTimestamp() : Instant.now())
                 .build();
         eventRepository.save(record);

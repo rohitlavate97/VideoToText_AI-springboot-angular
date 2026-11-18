@@ -53,6 +53,7 @@ public class TranscriptionService {
     private final TranscriptionProducer transcriptionProducer;
     private final SpeakerRepository speakerRepository;
     private final TranscriptRevisionRepository revisionRepository;
+    private final SseEmitterService sseEmitterService;
 
     @Transactional
     public TranscriptionJobResponse createJob(UUID userId, CreateTranscriptionRequest request) {
@@ -407,6 +408,9 @@ public class TranscriptionService {
             job.setCompletedAt(Instant.now());
             jobRepository.save(job);
             log.info("Job {} cancelled by user {}", jobId, userId);
+
+            // Broadcast cancellation event to SSE subscribers
+            sseEmitterService.broadcastCompletion(jobId, "CANCELLED", "Transcription job was cancelled by user.");
         }
 
         return TranscriptionJobResponse.fromEntity(job);

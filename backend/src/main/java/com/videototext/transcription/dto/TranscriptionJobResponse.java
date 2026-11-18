@@ -25,6 +25,8 @@ public class TranscriptionJobResponse {
     private float progressPercent;
     private int totalChunks;
     private int completedChunks;
+    private int retryCount;
+    private int maxRetries;
     private String errorMessage;
     private Instant createdAt;
     private Instant startedAt;
@@ -43,6 +45,8 @@ public class TranscriptionJobResponse {
                 .progressPercent(job.getProgressPercent())
                 .totalChunks(job.getTotalChunks())
                 .completedChunks(job.getCompletedChunks())
+                .retryCount(job.getRetryCount())
+                .maxRetries(job.getMaxRetries())
                 .errorMessage(job.getErrorMessage())
                 .createdAt(job.getCreatedAt())
                 .startedAt(job.getStartedAt())
