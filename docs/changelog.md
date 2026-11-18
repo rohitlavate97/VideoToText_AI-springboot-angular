@@ -296,3 +296,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
     - Translation pipeline: multi-threaded language batch translation in `translate_all` and 32-segment inference batching.
   - Comprehensive performance test suite in `test_performance_benchmarks.py` (7/7 tests passing, 96/96 total AI worker tests passing).
   - Total Platform Test Suite: **249 / 249 tests passed** (121 Backend, 96 AI Worker, 32 Frontend) with 0 failures and 0 errors.
+- **Phase 18**:
+  - Production containerization & DevOps deployment infrastructure:
+    - Multi-stage, production-hardened `Dockerfile` for Backend (Eclipse Temurin 21 JRE, G1GC tuning, non-root `appuser`, healthcheck), Frontend (Node 20 build -> Nginx 1.27 runtime with SPA routing, gzip compression, 1-year asset caching, CSP headers), AI Worker CPU (`python:3.11-slim` with FFmpeg, curl, non-root `workeruser`), and AI Worker GPU (`nvidia/cuda:12.2.2-cudnn8-runtime-ubuntu22.04` with CUDA 12.2 acceleration).
+    - Added dedicated `.dockerignore` files for root, backend, frontend, and ai-worker directories.
+    - Automated GitHub Actions CI workflow (`.github/workflows/ci.yml`) covering backend compilation and surefire tests, frontend Angular build and ChromeHeadless unit tests, Python AI worker pytest suite, and multi-container build verification.
+    - Automated GitHub Actions CD workflow (`.github/workflows/deploy.yml`) for versioned release building and publishing to GitHub Container Registry (GHCR).
+    - Production multi-service orchestration with `docker-compose.prod.yml`: PostgreSQL 16 (optimized buffers), RabbitMQ 3.13 (management), Redis 7 (LRU memory limits & password authentication), MinIO S3 object storage with auto-bucket initialization, Backend, AI Worker, Frontend, and Nginx edge gateway.
+    - Enterprise Kubernetes deployment manifests in `infrastructure/k8s/`: namespace, ConfigMap, secrets, stateful sets for Postgres & RabbitMQ, deployments for Redis, MinIO, Backend, AI Worker, Frontend, and Ingress with TLS & unbuffered SSE support.
+    - Production edge Nginx configuration (`infrastructure/nginx/production.nginx.conf`): HTTP-to-HTTPS 301 redirection, modern TLS 1.2/1.3 ciphers, 10 GB upload buffer support, rate limiting zones (`auth_limit` and `api_limit`), unbuffered Server-Sent Events (SSE) streaming (`proxy_buffering off;`), and security headers.
+    - Observability and monitoring stack (`infrastructure/monitoring/`): Prometheus scraper configuration and alerting rules, Grafana datasources, and pre-provisioned system dashboard (`videototext-dashboard.json`).
+    - Operational scripts (`infrastructure/scripts/`): automated PostgreSQL backup with gzip & SHA256 checksums (`backup-database.sh`), database restore procedure (`restore-database.sh`), object storage backup and restore (`backup-storage.sh`, `restore-storage.sh`), and platform-wide health inspection (`health-check.sh`).
+    - Published comprehensive production deployment runbook in `docs/deployment-runbook.md` with system prerequisites, environment setup, Docker Compose & Kubernetes rollout procedures, monitoring, backups, and zero-downtime rollback protocols.
