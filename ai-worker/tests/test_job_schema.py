@@ -79,6 +79,9 @@ def test_processing_event_validation():
     assert data["progressPercent"] == 55.5
     assert data["completedChunks"] == 11
     assert data["totalChunks"] == 20
+    assert data["retryAttempt"] == 0
+    assert data["maxRetries"] == 0
+    assert data["errorMessage"] is None
 
     # Invalid percent > 100 should raise ValidationError
     with pytest.raises(ValidationError):
@@ -88,6 +91,39 @@ def test_processing_event_validation():
             progress_percent=105.0,
             message="Over 100 percent"
         )
+
+
+def test_processing_event_with_retry_and_error():
+    job_id = uuid.uuid4()
+    event = ProcessingEvent(
+        job_id=job_id,
+        stage=ProcessingStage.RETRYING,
+        progress_percent=40.0,
+        completed_chunks=2,
+        total_chunks=5,
+        retry_attempt=2,
+        max_retries=3,
+        error_message="CUDA out of memory during audio chunk 3",
+        message="Processing attempt 2/3 failed. Retrying..."
+    )
+
+    data = event.model_dump(by_alias=True)
+    assert data["jobId"] == job_id
+    assert data["stage"] == "RETRYING"
+    assert data["retryAttempt"] == 2
+    assert data["maxRetries"] == 3
+    assert data["errorMessage"] == "CUDA out of memory during audio chunk 3"
+    assert "Retrying" in data["message"]
+
+
+def test_processing_stages_enumeration():
+    expected_stages = [
+        "QUEUED", "AUDIO_EXTRACTION", "VAD_CHUNKING", "TRANSCRIBING",
+        "DIARIZING", "TRANSLATING", "SUMMARIZING", "RETRYING",
+        "COMPLETED", "FAILED", "CANCELLED"
+    ]
+    for stage_name in expected_stages:
+        assert ProcessingStage(stage_name) is not None
 
 
 def test_transcription_job_result():
