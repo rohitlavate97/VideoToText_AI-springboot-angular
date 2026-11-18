@@ -54,10 +54,12 @@ public class TranscriptionService {
     private final SpeakerRepository speakerRepository;
     private final TranscriptRevisionRepository revisionRepository;
     private final SseEmitterService sseEmitterService;
+    private final com.videototext.security.quota.UploadQuotaService uploadQuotaService;
 
     @Transactional
     public TranscriptionJobResponse createJob(UUID userId, CreateTranscriptionRequest request) {
         log.info("Creating transcription job for user: {}, video: {}", userId, request.getVideoId());
+        uploadQuotaService.checkJobQuota(userId);
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));

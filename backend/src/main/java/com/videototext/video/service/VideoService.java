@@ -18,6 +18,7 @@ import com.videototext.video.entity.Video;
 import com.videototext.video.repository.UploadSessionRepository;
 import com.videototext.video.repository.VideoRepository;
 import com.videototext.video.validation.VideoValidator;
+import com.videototext.security.quota.UploadQuotaService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
@@ -46,6 +47,7 @@ public class VideoService {
     private final MetadataExtractionService metadataExtractionService;
     private final com.videototext.security.SecurityPathValidator securityPathValidator;
     private final com.videototext.security.audit.SecurityAuditService securityAuditService;
+    private final UploadQuotaService uploadQuotaService;
 
     @Transactional
     public VideoResponse uploadVideo(MultipartFile file, UUID userId) {
@@ -54,6 +56,7 @@ public class VideoService {
 
         videoValidator.validateExtension(filename);
         videoValidator.validateFileSize(file.getSize());
+        uploadQuotaService.checkUploadQuota(userId, file.getSize());
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
@@ -117,6 +120,7 @@ public class VideoService {
         String sanitizedFilename = securityPathValidator.sanitizeFilename(request.getFilename());
         videoValidator.validateExtension(sanitizedFilename);
         videoValidator.validateFileSize(request.getFileSizeBytes());
+        uploadQuotaService.checkUploadQuota(userId, request.getFileSizeBytes());
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
