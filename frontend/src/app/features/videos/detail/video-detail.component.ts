@@ -89,6 +89,43 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
   searchQuery = '';
   selectedSpeakerFilter: string | null = null;
 
+  // Real-time SSE & Pipeline Stage State
+  sseConnectionStatus: 'connected' | 'reconnecting' | 'disconnected' = 'disconnected';
+  readonly pipelineStages = [
+    { key: 'AUDIO_EXTRACTION', label: 'Audio Extraction', icon: 'audiotrack' },
+    { key: 'VAD_CHUNKING', label: 'Voice Detection', icon: 'graphic_eq' },
+    { key: 'TRANSCRIBING', label: 'AI Transcription', icon: 'subtitles' },
+    { key: 'DIARIZING', label: 'Speaker Identification', icon: 'record_voice_over' },
+    { key: 'TRANSLATING', label: 'Translation & Insights', icon: 'translate' }
+  ];
+
+  get remainingChunks(): number {
+    if (!this.activeJob || !this.activeJob.totalChunks) return 0;
+    return Math.max(0, this.activeJob.totalChunks - (this.activeJob.completedChunks || 0));
+  }
+
+  getStageStatus(stageKey: string): 'completed' | 'active' | 'pending' {
+    if (!this.activeJob) return 'pending';
+    const current = this.activeJob.currentStage || '';
+    if (this.activeJob.status === 'COMPLETED' || current === 'COMPLETED') return 'completed';
+
+    const stageOrder = ['AUDIO_EXTRACTION', 'VAD_CHUNKING', 'TRANSCRIBING', 'DIARIZING', 'TRANSLATING'];
+    const currentIndex = stageOrder.indexOf(current);
+    const stageIndex = stageOrder.indexOf(stageKey);
+
+    if (stageIndex === -1) return 'pending';
+    if (currentIndex === -1) {
+      if (current === 'INITIALIZED' || current === 'QUEUED') {
+        return stageIndex === 0 ? 'active' : 'pending';
+      }
+      return 'pending';
+    }
+
+    if (stageIndex < currentIndex) return 'completed';
+    if (stageIndex === currentIndex) return 'active';
+    return 'pending';
+  }
+
   // Playback & Waveform State
   currentTime = 0;
   duration = 0;
@@ -167,7 +204,7 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
         this.isLoading = false;
         if (res.success && res.data && res.data.length > 0) {
           this.activeJob = res.data[0];
-          if (this.activeJob.status === 'PROCESSING' || this.activeJob.status === 'QUEUED') {
+          if (this.activeJob.status === 'PROCESSING' || this.activeJob.status === 'QUEUED' || this.activeJob.status === 'RETRYING') {
             this.listenToProgress(this.activeJob.id);
           } else if (this.activeJob.status === 'COMPLETED') {
             this.loadSegments(this.activeJob.id);
@@ -186,25 +223,74 @@ export class VideoDetailComponent implements OnInit, OnDestroy {
 
   listenToProgress(jobId: string): void {
     this.sseSub?.unsubscribe();
+    this.sseConnectionStatus = 'connected';
     this.sseSub = this.transcriptionService.subscribeToJobProgress(jobId).subscribe({
       next: (evt) => {
         this.progressEvent = evt;
+
+        if (evt.stage === 'CONNECTED') {
+          this.sseConnectionStatus = 'connected';
+          return;
+        }
+
+        if (evt.stage === 'RECONNECTING') {
+          this.sseConnectionStatus = 'reconnecting';
+          return;
+        }
+
+        this.sseConnectionStatus = 'connected';
+
         if (this.activeJob) {
-          this.activeJob.currentStage = evt.stage;
-          this.activeJob.progressPercent = evt.progressPercent;
-          this.activeJob.completedChunks = evt.completedChunks;
-          this.activeJob.totalChunks = evt.totalChunks;
-          if (evt.stage === 'COMPLETED') {
+          if (evt.stage === 'RETRYING') {
+            this.activeJob.status = 'RETRYING';
+            this.activeJob.currentStage = 'RETRYING';
+            if (evt.retryAttempt) this.activeJob.retryCount = evt.retryAttempt;
+            if (evt.maxRetries) this.activeJob.maxRetries = evt.maxRetries;
+            if (evt.errorMessage) this.activeJob.errorMessage = evt.errorMessage;
+          } else if (evt.stage === 'FAILED') {
+            this.activeJob.status = 'FAILED';
+            this.activeJob.currentStage = 'FAILED';
+            if (evt.errorMessage) this.activeJob.errorMessage = evt.errorMessage;
+            this.sseConnectionStatus = 'disconnected';
+            this.snackBar.open(`Transcription failed: ${evt.message || 'Error occurred'}`, 'Close', { duration: 5000 });
+          } else if (evt.stage === 'CANCELLED') {
+            this.activeJob.status = 'CANCELLED';
+            this.activeJob.currentStage = 'CANCELLED';
+            this.sseConnectionStatus = 'disconnected';
+            this.snackBar.open('Transcription job was cancelled.', 'OK', { duration: 4000 });
+          } else if (evt.stage === 'COMPLETED') {
             this.activeJob.status = 'COMPLETED';
+            this.activeJob.currentStage = 'COMPLETED';
+            this.activeJob.progressPercent = 100;
+            this.sseConnectionStatus = 'disconnected';
             this.loadSegments(jobId);
             this.loadSpeakers(jobId);
             this.loadTranslations(jobId);
             this.loadSummary(jobId);
             this.loadSubtitles(jobId);
+            this.snackBar.open('Transcription completed successfully!', 'OK', { duration: 4000 });
+          } else {
+            this.activeJob.currentStage = evt.stage;
+            if (evt.progressPercent >= 0) {
+              this.activeJob.progressPercent = evt.progressPercent;
+            }
+            if (evt.completedChunks > 0) {
+              this.activeJob.completedChunks = evt.completedChunks;
+            }
+            if (evt.totalChunks > 0) {
+              this.activeJob.totalChunks = evt.totalChunks;
+            }
+            if (evt.retryAttempt) {
+              this.activeJob.retryCount = evt.retryAttempt;
+            }
+            if (evt.maxRetries) {
+              this.activeJob.maxRetries = evt.maxRetries;
+            }
           }
         }
       },
       error: (err) => {
+        this.sseConnectionStatus = 'disconnected';
         console.warn('SSE subscription closed:', err);
       }
     });

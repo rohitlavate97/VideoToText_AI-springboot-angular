@@ -5,6 +5,7 @@ import { ApiResponse, PageResponse } from '../models/api-response.model';
 import {
   CreateTranscriptionRequest,
   JobProgressEvent,
+  ProcessingEventResponse,
   TranscriptResponse,
   TranscriptRevision,
   TranscriptSearchResponse,
@@ -81,57 +82,159 @@ export class TranscriptionService {
   }
 
   /**
-   * Subscribes to real-time Server-Sent Events (SSE) for job progress updates.
+   * Retrieves the full chronological audit history of processing events for a job.
+   */
+  getJobEventHistory(jobId: string): Observable<ApiResponse<ProcessingEventResponse[]>> {
+    return this.http.get<ApiResponse<ProcessingEventResponse[]>>(`${this.EVENTS_BASE}/jobs/${jobId}/history`);
+  }
+
+  /**
+   * Subscribes to real-time Server-Sent Events (SSE) for job progress updates
+   * with automatic network reconnection and exponential backoff.
    */
   subscribeToJobProgress(jobId: string): Observable<JobProgressEvent> {
     return new Observable<JobProgressEvent>((observer) => {
-      const eventSource = new EventSource(`${this.EVENTS_BASE}/jobs/${jobId}`);
+      let eventSource: EventSource | null = null;
+      let reconnectTimer: ReturnType<typeof setTimeout> | null = null;
+      let isCompleted = false;
+      let reconnectAttempts = 0;
+      const MAX_RECONNECT_DELAY_MS = 15000;
 
-      eventSource.addEventListener('PROGRESS', (event: MessageEvent) => {
-        this.ngZone.run(() => {
-          try {
-            const data: JobProgressEvent = JSON.parse(event.data);
-            observer.next(data);
-          } catch (e) {
-            console.error('Error parsing SSE progress data:', e);
-          }
-        });
-      });
+      const connect = () => {
+        if (isCompleted) return;
 
-      eventSource.addEventListener('COMPLETED', (event: MessageEvent) => {
-        this.ngZone.run(() => {
-          try {
-            const data = JSON.parse(event.data);
-            observer.next({
-              jobId: data.jobId,
-              stage: 'COMPLETED',
-              progressPercent: 100,
-              completedChunks: 0,
-              totalChunks: 0,
-              message: data.message || 'Transcription finalized successfully.',
-              timestamp: new Date().toISOString()
-            });
-            observer.complete();
-          } catch (e) {
-            observer.complete();
-          }
-          eventSource.close();
-        });
-      });
+        eventSource = new EventSource(`${this.EVENTS_BASE}/jobs/${jobId}`);
 
-      eventSource.onerror = (err) => {
-        this.ngZone.run(() => {
-          // If already complete or network glitch, close
-          if (eventSource.readyState === EventSource.CLOSED) {
-            observer.complete();
-          } else {
-            console.warn('SSE connection warning for job:', jobId, err);
-          }
+        eventSource.addEventListener('CONNECTED', (event: MessageEvent) => {
+          this.ngZone.run(() => {
+            reconnectAttempts = 0;
+            try {
+              const data = JSON.parse(event.data);
+              if (data.status === 'CONNECTED') {
+                observer.next({
+                  jobId,
+                  stage: 'CONNECTED',
+                  progressPercent: 0,
+                  completedChunks: 0,
+                  totalChunks: 0,
+                  message: data.message || 'Connected to progress stream',
+                  timestamp: new Date().toISOString()
+                });
+              }
+            } catch (e) {
+              console.debug('SSE connect event parse error:', e);
+            }
+          });
         });
+
+        eventSource.addEventListener('PROGRESS', (event: MessageEvent) => {
+          this.ngZone.run(() => {
+            reconnectAttempts = 0;
+            try {
+              const data: JobProgressEvent = JSON.parse(event.data);
+              observer.next(data);
+            } catch (e) {
+              console.error('Error parsing SSE progress data:', e);
+            }
+          });
+        });
+
+        eventSource.addEventListener('COMPLETED', (event: MessageEvent) => {
+          this.ngZone.run(() => {
+            isCompleted = true;
+            try {
+              const data = JSON.parse(event.data);
+              observer.next({
+                jobId: data.jobId || jobId,
+                stage: data.status || 'COMPLETED',
+                progressPercent: 100,
+                completedChunks: 0,
+                totalChunks: 0,
+                message: data.message || 'Transcription finalized successfully.',
+                timestamp: new Date().toISOString()
+              });
+              observer.complete();
+            } catch (e) {
+              observer.complete();
+            }
+            teardown();
+          });
+        });
+
+        eventSource.addEventListener('FAILED', (event: MessageEvent) => {
+          this.ngZone.run(() => {
+            isCompleted = true;
+            try {
+              const data = JSON.parse(event.data);
+              observer.next({
+                jobId: data.jobId || jobId,
+                stage: 'FAILED',
+                progressPercent: 100,
+                completedChunks: 0,
+                totalChunks: 0,
+                errorMessage: data.message,
+                message: data.message || 'Transcription failed.',
+                timestamp: new Date().toISOString()
+              });
+              observer.complete();
+            } catch (e) {
+              observer.complete();
+            }
+            teardown();
+          });
+        });
+
+        eventSource.onerror = (err) => {
+          this.ngZone.run(() => {
+            if (isCompleted) {
+              teardown();
+              return;
+            }
+
+            // If the browser closed the connection, trigger reconnect logic
+            if (eventSource && eventSource.readyState === EventSource.CLOSED) {
+              eventSource.close();
+              eventSource = null;
+
+              reconnectAttempts++;
+              const delay = Math.min(1000 * Math.pow(2, reconnectAttempts - 1), MAX_RECONNECT_DELAY_MS);
+              console.warn(`SSE connection closed for job ${jobId}. Reconnecting in ${delay}ms (attempt ${reconnectAttempts})...`);
+
+              observer.next({
+                jobId,
+                stage: 'RECONNECTING',
+                progressPercent: -1,
+                completedChunks: 0,
+                totalChunks: 0,
+                message: `Connection interrupted. Reconnecting (attempt ${reconnectAttempts})...`,
+                timestamp: new Date().toISOString()
+              });
+
+              reconnectTimer = setTimeout(() => {
+                connect();
+              }, delay);
+            }
+          });
+        };
       };
 
+      const teardown = () => {
+        if (reconnectTimer) {
+          clearTimeout(reconnectTimer);
+          reconnectTimer = null;
+        }
+        if (eventSource) {
+          eventSource.close();
+          eventSource = null;
+        }
+      };
+
+      // Initial connection
+      connect();
+
       return () => {
-        eventSource.close();
+        isCompleted = true;
+        teardown();
       };
     });
   }

@@ -21,6 +21,8 @@ export interface TranscriptionJobResponse {
   progressPercent: number;
   totalChunks: number;
   completedChunks: number;
+  retryCount?: number;
+  maxRetries?: number;
   errorMessage?: string;
   createdAt: string;
   startedAt?: string;
@@ -94,6 +96,20 @@ export interface JobProgressEvent {
   progressPercent: number;
   completedChunks: number;
   totalChunks: number;
+  retryAttempt?: number;
+  maxRetries?: number;
+  errorMessage?: string;
   message: string;
   timestamp: string;
+}
+
+export interface ProcessingEventResponse {
+  id: string;
+  jobId: string;
+  eventType: string;
+  stage: string;
+  progressPercent: number;
+  message: string;
+  metadataJson?: string;
+  createdAt: string;
 }

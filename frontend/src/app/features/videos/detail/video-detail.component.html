@@ -173,25 +173,69 @@
           </mat-card-content>
         </mat-card>
 
-        <!-- Live Transcription Progress Card -->
-        <mat-card class="transcribe-card progress-mode" *ngIf="activeJob && (activeJob.status === 'PROCESSING' || activeJob.status === 'QUEUED')">
+        <!-- Live Transcription Progress Card (Tasks 4, 5, 6, 7, 8, 9) -->
+        <mat-card class="transcribe-card progress-mode" *ngIf="activeJob && (activeJob.status === 'PROCESSING' || activeJob.status === 'QUEUED' || activeJob.status === 'RETRYING')">
           <div class="transcribe-header">
-            <div class="ai-icon spinning">
-              <mat-icon>sync</mat-icon>
+            <div class="ai-icon" [ngClass]="{'spinning': activeJob.status === 'PROCESSING', 'retrying': activeJob.status === 'RETRYING'}">
+              <mat-icon>{{ activeJob.status === 'RETRYING' ? 'replay' : 'sync' }}</mat-icon>
             </div>
             <div class="job-stage-info">
-              <div class="stage-tag">{{ activeJob.currentStage }}</div>
-              <h3>Transcription in Progress ({{ activeJob.progressPercent | number:'1.0-1' }}%)</h3>
+              <div class="stage-tag-row">
+                <span class="stage-tag" [ngClass]="activeJob.status.toLowerCase()">{{ activeJob.currentStage }}</span>
+                <span class="sse-status-badge" [ngClass]="sseConnectionStatus">
+                  <span class="status-dot"></span>
+                  {{ sseConnectionStatus === 'connected' ? 'Live Updates Active' : (sseConnectionStatus === 'reconnecting' ? 'Reconnecting Stream...' : 'Offline') }}
+                </span>
+              </div>
+              <h3>Transcription in Progress ({{ activeJob.progressPercent | number:'1.1-1' }}%)</h3>
               <p class="stage-msg">{{ progressEvent?.message || 'Orchestrating speech-to-text pipeline...' }}</p>
             </div>
           </div>
 
+          <!-- Multi-stage Visual Pipeline Stepper -->
+          <div class="pipeline-stepper">
+            <div
+              *ngFor="let stage of pipelineStages; let i = index"
+              class="pipeline-step"
+              [ngClass]="getStageStatus(stage.key)"
+            >
+              <div class="step-circle">
+                <mat-icon *ngIf="getStageStatus(stage.key) === 'completed'">check</mat-icon>
+                <mat-icon *ngIf="getStageStatus(stage.key) !== 'completed'">{{ stage.icon }}</mat-icon>
+              </div>
+              <span class="step-label">{{ stage.label }}</span>
+              <div *ngIf="i < pipelineStages.length - 1" class="step-line" [ngClass]="{'completed': getStageStatus(stage.key) === 'completed'}"></div>
+            </div>
+          </div>
+
+          <!-- Deterministic Real-time Progress Bar -->
           <mat-progress-bar mode="determinate" [value]="activeJob.progressPercent" class="live-progress-bar"></mat-progress-bar>
 
+          <!-- Retry Alert Banner (Task 8) -->
+          <div *ngIf="activeJob.status === 'RETRYING' || (activeJob.retryCount && activeJob.retryCount > 0)" class="retry-status-banner">
+            <mat-icon class="retry-icon">warning</mat-icon>
+            <div class="retry-content">
+              <strong>Automatic Retry in Progress (Attempt {{ activeJob.retryCount }} of {{ activeJob.maxRetries || 3 }})</strong>
+              <p *ngIf="activeJob.errorMessage || progressEvent?.errorMessage">
+                Error encountered: {{ progressEvent?.errorMessage || activeJob.errorMessage }}
+              </p>
+            </div>
+          </div>
+
+          <!-- Progress Footer: Chunks stats & Cancellation (Task 7) -->
           <div class="progress-footer">
-            <span *ngIf="activeJob.totalChunks > 0" class="chunk-counter">
-              Chunk {{ activeJob.completedChunks }} of {{ activeJob.totalChunks }}
-            </span>
+            <div class="chunk-stats-container">
+              <span *ngIf="activeJob.totalChunks > 0" class="chunk-counter">
+                <mat-icon class="chunk-icon">view_week</mat-icon>
+                Completed: <strong>{{ activeJob.completedChunks }}</strong> / <strong>{{ activeJob.totalChunks }}</strong> chunks
+                <span class="remaining-chunks">({{ remainingChunks }} remaining)</span>
+              </span>
+              <span *ngIf="!activeJob.totalChunks || activeJob.totalChunks === 0" class="chunk-counter fallback">
+                <mat-icon class="chunk-icon">hourglass_top</mat-icon>
+                Allocating worker pipeline chunks...
+              </span>
+            </div>
+
             <button mat-button color="warn" (click)="cancelJob()">
               <mat-icon>cancel</mat-icon>
               Cancel Job
@@ -199,8 +243,31 @@
           </div>
         </mat-card>
 
-        <!-- Transcription CTA Card (When not actively processing) -->
-        <mat-card class="transcribe-card" *ngIf="!activeJob || (activeJob.status !== 'PROCESSING' && activeJob.status !== 'QUEUED')">
+        <!-- Transcription Failed Banner (Task 8) -->
+        <mat-card class="transcribe-card failed-mode" *ngIf="activeJob && activeJob.status === 'FAILED'">
+          <div class="transcribe-header">
+            <div class="ai-icon failed">
+              <mat-icon>error_outline</mat-icon>
+            </div>
+            <div class="job-stage-info">
+              <div class="stage-tag failed">FAILED</div>
+              <h3>Transcription Failed</h3>
+              <p class="error-msg">{{ activeJob.errorMessage || progressEvent?.errorMessage || 'An unrecoverable error occurred during audio processing.' }}</p>
+              <div *ngIf="activeJob.retryCount && activeJob.retryCount > 0" class="retry-summary">
+                Exceeded retry threshold ({{ activeJob.retryCount }} of {{ activeJob.maxRetries || 3 }} attempts failed).
+              </div>
+            </div>
+          </div>
+          <div class="transcribe-actions">
+            <button mat-raised-button color="primary" (click)="openTranscriptionDialog()">
+              <mat-icon>replay</mat-icon>
+              Retry Transcription
+            </button>
+          </div>
+        </mat-card>
+
+        <!-- Transcription CTA Card (When not actively processing or failed) -->
+        <mat-card class="transcribe-card" *ngIf="!activeJob || (activeJob.status !== 'PROCESSING' && activeJob.status !== 'QUEUED' && activeJob.status !== 'RETRYING' && activeJob.status !== 'FAILED')">
           <div class="transcribe-header">
             <div class="ai-icon">
               <mat-icon>auto_awesome</mat-icon>
