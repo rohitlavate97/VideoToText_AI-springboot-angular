@@ -55,6 +55,7 @@ public class TranscriptionService {
     private final TranscriptRevisionRepository revisionRepository;
     private final SseEmitterService sseEmitterService;
     private final com.videototext.security.quota.UploadQuotaService uploadQuotaService;
+    private final com.videototext.security.audit.SecurityAuditService securityAuditService;
 
     @Transactional
     public TranscriptionJobResponse createJob(UUID userId, CreateTranscriptionRequest request) {
@@ -409,6 +410,21 @@ public class TranscriptionService {
             job.setCurrentStage("CANCELLED");
             job.setCompletedAt(Instant.now());
             jobRepository.save(job);
+
+            if (job.getVideo() != null && "PROCESSING".equalsIgnoreCase(job.getVideo().getStatus())) {
+                job.getVideo().setStatus("READY");
+                videoRepository.save(job.getVideo());
+            }
+
+            securityAuditService.logSecurityEvent(
+                    "JOB_CANCELLED",
+                    userId.toString(),
+                    jobId.toString(),
+                    null,
+                    "SUCCESS",
+                    "User cancelled transcription job"
+            );
+
             log.info("Job {} cancelled by user {}", jobId, userId);
 
             // Broadcast cancellation event to SSE subscribers

@@ -41,6 +41,7 @@ import java.util.UUID;
 public class TranscriptionController {
 
     private final TranscriptionService transcriptionService;
+    private final com.videototext.transcription.service.JobRecoveryService jobRecoveryService;
 
     @Operation(summary = "Submit transcription job", description = "Creates a new transcription job and queues it for processing")
     @PostMapping
@@ -161,5 +162,16 @@ public class TranscriptionController {
             @AuthenticationPrincipal CustomUserDetails userDetails) {
         TranscriptionJobResponse response = transcriptionService.cancelJob(userDetails.getId(), jobId);
         return ResponseEntity.ok(ApiResponse.success(response, "Transcription job cancelled successfully"));
+    }
+
+    @Operation(summary = "Recover stuck transcription job", description = "Retries or recovers an interrupted or failed transcription job")
+    @PostMapping("/{jobId}/recover")
+    @PreAuthorize("isAuthenticated()")
+    public ResponseEntity<ApiResponse<TranscriptionJobResponse>> recoverJob(
+            @PathVariable UUID jobId,
+            @RequestParam(defaultValue = "false") boolean force,
+            @AuthenticationPrincipal CustomUserDetails userDetails) {
+        TranscriptionJobResponse response = jobRecoveryService.recoverJobManual(jobId, userDetails.getId(), force);
+        return ResponseEntity.ok(ApiResponse.success(response, "Transcription job recovery initiated successfully"));
     }
 }

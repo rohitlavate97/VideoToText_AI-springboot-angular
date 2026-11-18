@@ -98,6 +98,11 @@ app:
     upload-limit: ${RATE_LIMIT_UPLOAD:15}
     default-limit: ${RATE_LIMIT_DEFAULT:120}
     window-seconds: ${RATE_LIMIT_WINDOW_SECONDS:60}
+  reliability:
+    recovery-enabled: ${JOB_RECOVERY_ENABLED:true}
+    stuck-job-timeout-minutes: ${STUCK_JOB_TIMEOUT_MINUTES:15}
+    max-job-retries: ${MAX_JOB_RETRIES:3}
+    sweep-interval-ms: ${JOB_SWEEP_INTERVAL_MS:60000}
 
 # ---- Logging ----
 logging:
