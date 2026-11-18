@@ -1,6 +1,8 @@
+import concurrent.futures
 import logging
+import threading
 import time
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Dict, List, Optional, Tuple
 from app.processors.vad_chunker import AudioChunk
 from app.providers.base_provider import ASRProvider, TranscriptionOutput
 from app.providers.device_detector import DeviceCapability, DeviceDetector
@@ -12,8 +14,9 @@ class ChunkScheduler:
     """
     GPU-aware scheduler for audio chunk processing:
     - Binds concurrency according to detected VRAM and compute capabilities to avoid OOM.
+    - Executes parallel chunk transcription via ThreadPoolExecutor when concurrency > 1.
     - Implements per-chunk retry with exponential backoff.
-    - Dispatches chunk progress notifications.
+    - Dispatches chunk progress notifications thread-safely.
     """
 
     def __init__(
@@ -30,7 +33,7 @@ class ChunkScheduler:
     def _calculate_safe_concurrency(self) -> int:
         """Determines max parallel chunks without risking GPU Out-Of-Memory (OOM)."""
         if not self.device_capability.is_gpu:
-            return 1  # Sequential on CPU
+            return 1  # Sequential on CPU to avoid CPU thread contention
 
         vram = self.device_capability.vram_total_mb or 0
         if vram >= 16000:
@@ -93,6 +96,7 @@ class ChunkScheduler:
         """
         Executes chunk processing according to safe concurrency bounds,
         calling on_chunk_completed callback upon each successful chunk.
+        Uses parallel workers when concurrency > 1 for high GPU throughput.
         """
         logger.info(
             "Scheduling %d chunks with safe concurrency bound: %d (device=%s)",
@@ -101,19 +105,53 @@ class ChunkScheduler:
             self.device_capability.device
         )
 
-        results: List[Tuple[AudioChunk, TranscriptionOutput]] = []
         total_chunks = len(chunks)
+        if total_chunks == 0:
+            return []
 
-        for i, chunk in enumerate(chunks, start=1):
-            output = self.process_chunk_with_retry(
-                chunk=chunk,
-                language=language,
-                task=task,
-                word_timestamps=word_timestamps
-            )
-            results.append((chunk, output))
+        # Sequential fast-path for CPU or single-worker GPU
+        if self.concurrency <= 1 or total_chunks == 1:
+            results: List[Tuple[AudioChunk, TranscriptionOutput]] = []
+            for i, chunk in enumerate(chunks, start=1):
+                output = self.process_chunk_with_retry(
+                    chunk=chunk,
+                    language=language,
+                    task=task,
+                    word_timestamps=word_timestamps
+                )
+                results.append((chunk, output))
+                if on_chunk_completed:
+                    on_chunk_completed(i, total_chunks, chunk)
+            return results
 
-            if on_chunk_completed:
-                on_chunk_completed(i, total_chunks, chunk)
+        # Concurrent parallel execution for multi-worker GPUs
+        results_by_index: Dict[int, Tuple[AudioChunk, TranscriptionOutput]] = {}
+        completed_count = 0
+        lock = threading.Lock()
 
-        return results
+        with concurrent.futures.ThreadPoolExecutor(max_workers=self.concurrency) as executor:
+            future_to_chunk = {
+                executor.submit(
+                    self.process_chunk_with_retry,
+                    chunk,
+                    language,
+                    task,
+                    word_timestamps
+                ): chunk
+                for chunk in chunks
+            }
+
+            for future in concurrent.futures.as_completed(future_to_chunk):
+                chunk = future_to_chunk[future]
+                output = future.result()
+                results_by_index[chunk.chunk_index] = (chunk, output)
+
+                with lock:
+                    completed_count += 1
+                    current_count = completed_count
+
+                if on_chunk_completed:
+                    on_chunk_completed(current_count, total_chunks, chunk)
+
+        # Return ordered by chunk index
+        return [results_by_index[c.chunk_index] for c in chunks]

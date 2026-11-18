@@ -179,3 +179,40 @@ def test_transcript_merger_stitching_and_overlap_deduplication():
     assert merged[2].text == "Now we continue with the next sentence."
     assert merged[2].words[0].start_time == 10.2
     assert merged[2].words[0].end_time == 10.8
+
+
+def test_chunk_scheduler_parallel_execution():
+    mock_provider = MagicMock(spec=ASRProvider)
+    chunk0 = AudioChunk(chunk_index=0, start_time=0.0, end_time=10.0, file_path="c0.wav", duration=10.0)
+    chunk1 = AudioChunk(chunk_index=1, start_time=10.0, end_time=20.0, file_path="c1.wav", duration=10.0)
+    chunk2 = AudioChunk(chunk_index=2, start_time=20.0, end_time=30.0, file_path="c2.wav", duration=10.0)
+
+    out0 = TranscriptionOutput(text="chunk 0", segments=[], provider_name="mock", model_name="base")
+    out1 = TranscriptionOutput(text="chunk 1", segments=[], provider_name="mock", model_name="base")
+    out2 = TranscriptionOutput(text="chunk 2", segments=[], provider_name="mock", model_name="base")
+    mock_provider.transcribe.side_effect = [out0, out1, out2]
+
+    gpu_high = DeviceCapability(
+        device="cuda",
+        is_gpu=True,
+        device_name="NVIDIA A10G",
+        recommended_compute_type="float16",
+        cpu_cores=16,
+        vram_total_mb=24576
+    )
+    scheduler = ChunkScheduler(provider=mock_provider, device_capability=gpu_high)
+    assert scheduler.concurrency == 4
+
+    completed = []
+    def on_progress(idx, total, c):
+        completed.append(c.chunk_index)
+
+    results = scheduler.schedule_chunks([chunk0, chunk1, chunk2], on_chunk_completed=on_progress)
+
+    # All 3 chunks processed and returned in exact chronological index order
+    assert len(results) == 3
+    assert results[0][0].chunk_index == 0
+    assert results[1][0].chunk_index == 1
+    assert results[2][0].chunk_index == 2
+    assert set(completed) == {0, 1, 2}
+
