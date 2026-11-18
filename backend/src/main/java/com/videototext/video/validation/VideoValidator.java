@@ -86,6 +86,15 @@ public class VideoValidator {
                 throw new BadRequestException(ErrorCode.UNSUPPORTED_FORMAT, "File is corrupted or too small to be a valid video");
             }
 
+            // Explicit rejection of executable binaries disguised with a video extension
+            if (isExecutableOrDangerousFile(header)) {
+                log.warn("Executable signature detected in uploaded file '{}'. Upload rejected.", filename);
+                throw new BadRequestException(
+                        ErrorCode.UNSUPPORTED_FORMAT,
+                        "Executable binary or script disguised as a video file is strictly prohibited"
+                );
+            }
+
             if (!hasValidVideoSignature(header)) {
                 log.warn("File '{}' failed magic bytes signature verification", filename);
                 throw new BadRequestException(
@@ -96,6 +105,34 @@ public class VideoValidator {
         } catch (IOException e) {
             throw new BadRequestException(ErrorCode.PROCESSING_ERROR, "Failed to read file header signature: " + e.getMessage());
         }
+    }
+
+    private boolean isExecutableOrDangerousFile(byte[] h) {
+        if (h == null || h.length < 4) {
+            return false;
+        }
+
+        // Windows PE / DOS Executable: 'MZ' (0x4D, 0x5A)
+        if (h[0] == 'M' && h[1] == 'Z') {
+            return true;
+        }
+
+        // Linux ELF binary: 0x7F 'E' 'L' 'F'
+        if ((h[0] & 0xFF) == 0x7F && h[1] == 'E' && h[2] == 'L' && h[3] == 'F') {
+            return true;
+        }
+
+        // Script shebang: '#!' (0x23, 0x21)
+        if (h[0] == '#' && h[1] == '!') {
+            return true;
+        }
+
+        // Java bytecode: CA FE BA BE
+        if ((h[0] & 0xFF) == 0xCA && (h[1] & 0xFF) == 0xFE && (h[2] & 0xFF) == 0xBA && (h[3] & 0xFF) == 0xBE) {
+            return true;
+        }
+
+        return false;
     }
 
     private boolean hasValidVideoSignature(byte[] h) {

@@ -53,6 +53,8 @@ class AudioExtractor:
             )
             cmd = [
                 ffmpeg_cmd,
+                "-nostdin",
+                "-protocol_whitelist", "file,crypto,data",
                 "-y",  # overwrite output
                 "-i", video_path,
                 "-vn",  # disable video

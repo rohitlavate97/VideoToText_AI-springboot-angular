@@ -64,12 +64,15 @@ public class MetadataExtractionService {
     private VideoMetadata runFFprobe(File file) throws Exception {
         ProcessBuilder pb = new ProcessBuilder(
                 ffprobePath,
+                "-nostdin",
+                "-protocol_whitelist", "file,crypto,data",
                 "-v", "quiet",
                 "-print_format", "json",
                 "-show_format",
                 "-show_streams",
                 file.getAbsolutePath()
         );
+        pb.redirectErrorStream(true);
 
         Process process = pb.start();
         StringBuilder output = new StringBuilder();
@@ -78,10 +81,21 @@ public class MetadataExtractionService {
             String line;
             while ((line = reader.readLine()) != null) {
                 output.append(line);
+                // Prevent memory exhaustion on runaway output
+                if (output.length() > 2 * 1024 * 1024) { // 2MB max JSON
+                    process.destroyForcibly();
+                    throw new FileProcessingException("FFprobe output exceeded maximum buffer limit");
+                }
             }
         }
 
-        int exitCode = process.waitFor();
+        boolean finished = process.waitFor(30, java.util.concurrent.TimeUnit.SECONDS);
+        if (!finished) {
+            process.destroyForcibly();
+            throw new FileProcessingException("FFprobe process timed out after 30 seconds");
+        }
+
+        int exitCode = process.exitValue();
         if (exitCode != 0) {
             throw new FileProcessingException("FFprobe process exited with code " + exitCode);
         }

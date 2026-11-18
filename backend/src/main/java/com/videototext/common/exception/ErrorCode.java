@@ -14,6 +14,7 @@ public enum ErrorCode {
     FILE_TOO_LARGE("FILE_TOO_LARGE", HttpStatus.PAYLOAD_TOO_LARGE, "Uploaded file exceeds maximum allowed size"),
     UNSUPPORTED_FORMAT("UNSUPPORTED_FORMAT", HttpStatus.UNSUPPORTED_MEDIA_TYPE, "The provided media format is not supported"),
     DURATION_EXCEEDED("DURATION_EXCEEDED", HttpStatus.UNPROCESSABLE_ENTITY, "Video duration exceeds maximum allowed duration (240 minutes)"),
+    QUOTA_EXCEEDED("QUOTA_EXCEEDED", HttpStatus.BAD_REQUEST, "Storage or concurrent job quota exceeded"),
     RATE_LIMIT_EXCEEDED("RATE_LIMIT_EXCEEDED", HttpStatus.TOO_MANY_REQUESTS, "API rate limit exceeded. Please retry later"),
     PROCESSING_ERROR("PROCESSING_ERROR", HttpStatus.INTERNAL_SERVER_ERROR, "An error occurred while processing your request"),
     SERVICE_UNAVAILABLE("SERVICE_UNAVAILABLE", HttpStatus.SERVICE_UNAVAILABLE, "Downstream service is temporarily unavailable");

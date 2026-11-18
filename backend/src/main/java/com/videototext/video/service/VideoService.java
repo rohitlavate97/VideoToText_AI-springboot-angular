@@ -44,13 +44,13 @@ public class VideoService {
     private final StorageService storageService;
     private final VideoValidator videoValidator;
     private final MetadataExtractionService metadataExtractionService;
+    private final com.videototext.security.SecurityPathValidator securityPathValidator;
+    private final com.videototext.security.audit.SecurityAuditService securityAuditService;
 
     @Transactional
     public VideoResponse uploadVideo(MultipartFile file, UUID userId) {
-        String filename = file.getOriginalFilename();
-        if (filename == null || filename.isBlank()) {
-            throw new BadRequestException(ErrorCode.VALIDATION_ERROR, "Uploaded file must have a valid filename");
-        }
+        String rawFilename = file.getOriginalFilename();
+        String filename = securityPathValidator.sanitizeFilename(rawFilename);
 
         videoValidator.validateExtension(filename);
         videoValidator.validateFileSize(file.getSize());
@@ -71,7 +71,8 @@ public class VideoService {
             // Extract metadata and enforce 240-minute limit
             MetadataExtractionService.VideoMetadata metadata = metadataExtractionService.extractMetadata(tempFile);
 
-            String storageKey = String.format("videos/%s/%s/%s", userId, UUID.randomUUID(), sanitizeFilename(filename));
+            String storageKey = String.format("videos/%s/%s/%s", userId, UUID.randomUUID(), filename);
+            securityPathValidator.validateStorageKey(storageKey);
             String contentType = file.getContentType() != null ? file.getContentType() : "video/mp4";
 
             // Upload to S3/MinIO
@@ -93,6 +94,7 @@ public class VideoService {
 
             Video saved = videoRepository.save(video);
             log.info("Video successfully uploaded and registered: id={}, user={}", saved.getId(), userId);
+            securityAuditService.logSecurityEvent("FILE_UPLOAD", userId.toString(), saved.getId().toString(), null, "SUCCESS", "Uploaded " + filename);
 
             return mapToResponse(saved);
         } catch (BadRequestException ex) {
@@ -112,20 +114,22 @@ public class VideoService {
 
     @Transactional
     public InitiateUploadResponse initiateMultipartUpload(InitiateUploadRequest request, UUID userId) {
-        videoValidator.validateExtension(request.getFilename());
+        String sanitizedFilename = securityPathValidator.sanitizeFilename(request.getFilename());
+        videoValidator.validateExtension(sanitizedFilename);
         videoValidator.validateFileSize(request.getFileSizeBytes());
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User", "id", userId));
 
-        String storageKey = String.format("videos/%s/%s/%s", userId, UUID.randomUUID(), sanitizeFilename(request.getFilename()));
+        String storageKey = String.format("videos/%s/%s/%s", userId, UUID.randomUUID(), sanitizedFilename);
+        securityPathValidator.validateStorageKey(storageKey);
         String contentType = request.getContentType() != null ? request.getContentType() : "video/mp4";
 
         String s3UploadId = storageService.initiateMultipartUpload(storageKey, contentType);
 
         Video video = Video.builder()
                 .user(user)
-                .originalFilename(request.getFilename())
+                .originalFilename(sanitizedFilename)
                 .storageKey(storageKey)
                 .contentType(contentType)
                 .fileSizeBytes(request.getFileSizeBytes())
@@ -146,6 +150,7 @@ public class VideoService {
                 .startedAt(Instant.now())
                 .build();
         UploadSession savedSession = uploadSessionRepository.save(session);
+        securityAuditService.logSecurityEvent("MULTIPART_INITIATE", userId.toString(), savedVideo.getId().toString(), null, "SUCCESS", "Initiated multipart upload for " + sanitizedFilename);
 
         return InitiateUploadResponse.builder()
                 .uploadSessionId(savedSession.getId())
@@ -223,6 +228,7 @@ public class VideoService {
         Video video = videoRepository.findByIdAndUserId(videoId, userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Video", "id", videoId));
 
+        securityPathValidator.validateStorageKey(video.getStorageKey());
         try {
             storageService.deleteFile(video.getStorageKey());
         } catch (Exception ex) {
@@ -230,6 +236,7 @@ public class VideoService {
         }
 
         videoRepository.delete(video);
+        securityAuditService.logSecurityEvent("FILE_DELETE", userId.toString(), videoId.toString(), null, "SUCCESS", "Deleted video " + video.getOriginalFilename());
         log.info("Deleted video {} for user {}", videoId, userId);
     }
 
@@ -251,6 +258,6 @@ public class VideoService {
     }
 
     private String sanitizeFilename(String filename) {
-        return filename.replaceAll("[^a-zA-Z0-9._-]", "_");
+        return securityPathValidator.sanitizeFilename(filename);
     }
 }
